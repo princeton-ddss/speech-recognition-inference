@@ -29,6 +29,11 @@ RUN adduser \
     --uid "${UID}" \
     appuser
 
+# INSTALL FFMPEG: could not drop the apt-get update command
+# Put it in the beginning of the file to use caches if possible
+RUN apt-get update --yes && \
+    apt-get install --yes --no-install-recommends \
+    ffmpeg
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
 # Leverage a bind mount to requirements.txt to avoid having to copy them into
