@@ -37,6 +37,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     python -m pip install -r requirements.txt
 
+# Make directory to mount with local data folder to link to models and data
+RUN mkdir -p /files
+
 # Switch to the non-privileged user to run the application.
 USER appuser
 
@@ -45,9 +48,10 @@ COPY . .
 
 # Expose the port that the application listens on.
 EXPOSE 8000
-
+# Expose debugger port
+EXPOSE 5678
 # Run the application.
 CMD uvicorn 'src.api.main:app' --host=0.0.0.0 --port=8000 --reload
 
-# docker run --volume /home/data:/data --env model_dir="/home/...
+# docker run -v /home/data:/data --env model_dir="/home/...
 # use env options in doccker run

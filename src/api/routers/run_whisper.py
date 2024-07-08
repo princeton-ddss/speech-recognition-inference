@@ -5,7 +5,7 @@ from typing import Union
 
 def whisper_transcription(
             file:str,
-            model:str,
+            whisper_model,
             language: Union[str, None] = None
 ):
         '''
@@ -23,8 +23,6 @@ def whisper_transcription(
             )
 
         audio = whisper.load_audio(file)
-        whisper_model = whisper.load_model(model, device=device
-            )
 
         if not language:
             # detect the spoken language
