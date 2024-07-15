@@ -1,8 +1,6 @@
 import whisper_timestamped as whisper
 import torch
 from typing import Union
-
-
 def whisper_transcription(
             file:str,
             whisper_model,
