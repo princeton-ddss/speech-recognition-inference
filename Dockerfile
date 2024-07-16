@@ -61,9 +61,10 @@ EXPOSE 5678
 # Use workdir with relative path before uvicorn sometimes does not work
 # Need to use absolute path inside uvicorn to prevent changing of the
 # working directory by other systems
-CMD uvicorn 'api.main:app' --app-dir=/app/src \
+# Need to set above src to ensure that src could be used as module
+CMD uvicorn 'src.api.main:app' --app-dir=/app \
 --host=0.0.0.0 --port=8000 \
---reload --reload-dir=/app/src
+--reload --reload-dir=/app
 
 # docker run -v /home/data:/data --env model_dir="/home/...
 # use env options in doccker run
