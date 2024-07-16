@@ -5,7 +5,7 @@
 # https://docs.docker.com/engine/reference/builder/
 
 ARG PYTHON_VERSION=3.10.11
-FROM python:${PYTHON_VERSION} as base
+FROM python:${PYTHON_VERSION} AS base
 
 # Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -46,7 +46,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 RUN mkdir -p /files
 
 # Switch to the non-privileged user to run the application.
-USER appuser
+# Comment this one if the root user access is needed
+#USER appuser
 
 # Copy the source code into the container.
 COPY . .
@@ -55,8 +56,14 @@ COPY . .
 EXPOSE 8000
 # Expose debugger port
 EXPOSE 5678
+
 # Run the application.
-CMD uvicorn 'src.api.main:app' --host=0.0.0.0 --port=8000 --reload
+# Use workdir with relative path before uvicorn sometimes does not work
+# Need to use absolute path inside uvicorn to prevent changing of the
+# working directory by other systems
+CMD uvicorn 'api.main:app' --app-dir=/app/src \
+--host=0.0.0.0 --port=8000 \
+--reload --reload-dir=/app/src
 
 # docker run -v /home/data:/data --env model_dir="/home/...
 # use env options in doccker run
