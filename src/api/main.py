@@ -1,9 +1,10 @@
 import sys
 
-sys.path.append("/Users/jf3375/PycharmProjects/AudiotoTextAPI/src")
+sys.path.append("../..") #set src as directory
 
 # import pydevd_pycharm
-# pydevd_pycharm.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True)
+# pydevd_pycharm.settrace("host.docker.internal", port=5678, stdoutToServer=True,
+#                         stderrToServer=True)
 
 import os
 from fastapi import FastAPI
@@ -35,7 +36,7 @@ def run_transcription(
     """
     The main function to run the api to perform the speech-to-text
     transcription using the particular model
-       - file_name: a audio file name uploaded to the default server address
+       - file_name: an audio file name uploaded to the default server address
        - language: language in the audio
        - response_format: choose json or text to return transcriptions
        with or without timestamps
@@ -45,8 +46,11 @@ def run_transcription(
     file_name, language, response_format = transcription_inputs.file_name,\
     transcription_inputs.language, transcription_inputs.response_format
 
+    print(file_name, language, response_format)
+    print(input_folder)
     file = os.path.join(input_folder, file_name)
 
+    # Run Whisper Transcription
     result = whisper_transcription(file, whisper_model, language)
 
     # Process outputs based on the response format
@@ -65,7 +69,9 @@ def run_transcription(
 
 #API Run Port 8000
 #Run it in CLI:
-#uvicorn src.api.main:app --reload: need to start from the top level src
+#uvicorn .app.src.api.main:app --reload: need to start from the most top
+# level using absolute path
 # folder to call other submodules
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload = True)
+
