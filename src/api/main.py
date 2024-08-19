@@ -10,13 +10,11 @@ import os
 from fastapi import FastAPI
 import uvicorn
 
-from src.api.routers.run_whisper import whisper_transcription
+from src.api.routers.run_whisper_hf import whisper_transcription_hf
 from src.data_types.inputs.transcription import TranscriptionInputs
 from src.data_types.outputs.transcription import Segment, TranscriptionOutputs
 
-from src.api.routers.load_model import whisper_model, model_name, model_size, \
-    input_folder
-
+from src.api.routers.load_model_hf import pipe, model_name, model_size, input_folder
 
 
 app = FastAPI()
@@ -51,19 +49,22 @@ def run_transcription(
     file = os.path.join(input_folder, file_name)
 
     # Run Whisper Transcription
-    result = whisper_transcription(file, whisper_model, language)
-
+    # result = whisper_transcription(file, whisper_model, language)
+    result = whisper_transcription_hf(file, pipe, language)
+    print(result)
     # Process outputs based on the response format
-    output = TranscriptionOutputs(file=file_name, language=result['language'])
+    output = TranscriptionOutputs(file=file_name)
 
     output.text = result['text']
     if response_format == "json":
-        segments = [None] * len(result["segments"])
-        for idx, seg in enumerate(result["segments"]):
+        segments = [None] * len(result["chunks"])
+        for idx, seg in enumerate(result["chunks"]):
             segments[idx] = Segment(
-                text=seg["text"], start=seg["start"], end=seg["end"]
+                language=seg["language"], text=seg["text"], start=seg[
+                    "timestamp"][0], end=seg["timestamp"][1]
             )
-            output.segments = segments
+
+        output.segments = segments
     output.used_model = model_name + "_" + model_size
     return output
 

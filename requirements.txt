@@ -4,3 +4,7 @@ whisper-timestamped==1.14.1
 fastapi
 uvicorn
 pydevd-pycharm~=231.9225.15
+transformers
+accelerate
+torch
+huggingface_hub

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"] # From which folder we start to build packages
 
 [project]
-name = "audiototextapi" #package name is packageworkshop, package name needs to
+name = "speech-recognition-inference" #package name is packageworkshop, package name needs to
 #be unique to be published
 #dynamic = ["version"] # specify version as a dynamic variable: dynamically set version by previous path
 version = "0.0.1" # Set version as fixed
