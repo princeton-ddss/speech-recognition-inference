@@ -4,7 +4,8 @@
 # If you need more help, visit the Dockerfile reference guide at
 # https://docs.docker.com/engine/reference/builder/
 
-ARG PYTHON_VERSION=3.10.11
+# ARG: The environment variables only exist in the build time
+ARG PYTHON_VERSION=3.10
 FROM python:${PYTHON_VERSION} AS base
 
 # Prevents Python from writing pyc files.
@@ -53,7 +54,7 @@ RUN mkdir -p /files
 COPY . .
 
 # Expose the port that the application listens on.
-EXPOSE 8000
+EXPOSE ${SPEECH_RECOGNITION_PORT}
 # Expose debugger port
 EXPOSE 5678
 
@@ -62,9 +63,17 @@ EXPOSE 5678
 # Need to use absolute path inside uvicorn to prevent changing of the
 # working directory by other systems
 # Need to set above src to ensure that src could be used as module
-CMD uvicorn 'src.api.main:app' --app-dir=/app \
---host=0.0.0.0 --port=8000 \
---reload --reload-dir=/app
+# CMD [..,..], ${SPEECH_RECOGNITION_PORT}
 
-# docker run -v /home/data:/data --env model_dir="/home/...
+CMD uvicorn 'src.api.main:app' --app-dir=/app \
+--host=0.0.0.0 --port=${SPEECH_RECOGNITION_PORT} \
+--reload --reload-dir=/app;
+RUN echo "TRuntime RECOGNITION PORT is: ${SPEECH_RECOGNITION_PORT}"
+
+
+
+
+
+# docker run -v /home/data:/data --env model_dir="/home/... --env
+# speech_recognition_port=
 # use env options in doccker run
