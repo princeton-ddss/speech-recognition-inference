@@ -14,4 +14,3 @@ class TranscriptionOutputs(BaseModel):
     segments: Union[list[Segment], None] = Field(default=None, examples=[
         "{{'text': 'Hello World', 'start': '0', 'end':'2'}}"])
     task: str = Field(default = "transcribe")
-    used_model: str = Field(default=None, examples=["whisper_test"])

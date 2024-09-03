@@ -5,15 +5,14 @@ sys.path.append("../..")
 import requests
 from fastapi.encoders import jsonable_encoder
 
-from src.data_types.inputs.transcription import ModelInputs, \
-    TranscriptionInputs
+from src.data_types.inputs.transcription import TranscriptionInputs
 
 #
 transcription_inputs = {"file_name":"sample_data_short.wav",
                                            "language":"english",
                                            "response_format":"text"}
-json_body_dict = jsonable_encoder(transcription_inputs)
-
+# json_body_dict = jsonable_encoder(transcription_inputs)
+json_body_dict = transcription_inputs
 #Options in requests.post
 #params is for query inputs
 #data only takes json inputs
