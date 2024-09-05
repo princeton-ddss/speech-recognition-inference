@@ -11,7 +11,7 @@ version = "0.0.1"
 authors = [
   { name="Junying (Alice) Fang", email="jf3375@princeton.edu" },
 ]
-description = "The ML Application to Peform SpeechtoText Transcription"
+description = "A Speech-to-Text API."
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -28,5 +28,5 @@ docs = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/princeton-ddss/AudiotoTextAPI"
+"Homepage" = "https://github.com/princeton-ddss/speech-recognition-inference"
 
