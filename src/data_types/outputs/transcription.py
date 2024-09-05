@@ -10,9 +10,12 @@ class Segment(BaseModel):
 
 
 class TranscriptionOutputs(BaseModel):
-    file: str = Field(examples=["sample_data_short.wav"])
+    file: str = Field(examples=["audio.wav"])
     text: Union[None, str] = Field(default=None, examples=["Hello World"])
     segments: Union[list[Segment], None] = Field(
-        default=None, examples=["{{'text': 'Hello World', 'start': '0', 'end':'2'}}"]
+        default=None,
+        examples=[
+            "{{'language': 'english', 'text': 'Hello World', 'start': '0', 'end':'2'}}"
+        ],
     )
     task: str = Field(default="transcribe")
