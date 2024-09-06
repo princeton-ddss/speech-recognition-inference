@@ -1,78 +1,95 @@
-import sys
-
-sys.path.append("../..") #set src as directory
-
-# import pydevd_pycharm
-# pydevd_pycharm.settrace("host.docker.internal", port=5678, stdoutToServer=True,
-#                         stderrToServer=True)
-
 import os
+import argparse
 from fastapi import FastAPI
 import uvicorn
 
-from src.api.routers.run_whisper_hf import whisper_transcription_hf
-from src.data_types.inputs.transcription import TranscriptionInputs
-from src.data_types.outputs.transcription import Segment, TranscriptionOutputs
-
-from src.api.routers.load_model_hf import pipe, model_name, model_size, input_folder
+from config import SpeechRecognitionInferenceConfig
+from models import TranscriptionRequest, TranscriptionResponse, Segment
+from pipeline import load_pipeline, download_hf_models, transcribe_audio_file
 
 
-app = FastAPI()
-
-#Take $MODEL_DIR
-
-@app.get('/')
-def get_main_page():
-    return "Welcome to Audio-to-Text API Page"
-
-
-@app.post("/transcribe", tags = ["transcription"],
-          response_description="Transcription Outputs")
-def run_transcription(
-    transcription_inputs: TranscriptionInputs
-) -> TranscriptionOutputs:
-    """
-    The main function to run the api to perform the speech-to-text
-    transcription using the particular model
-       - file_name: an audio file name uploaded to the default server address
-       - language: language in the audio
-       - response_format: choose json or text to return transcriptions
-       with or without timestamps
-    """
-
-    #Get attributes from the instance
-    file_name, language, response_format = transcription_inputs.file_name,\
-    transcription_inputs.language, transcription_inputs.response_format
-
-    print(file_name, language, response_format)
-    print(input_folder)
-    file = os.path.join(input_folder, file_name)
-
-    # Run Whisper Transcription
-    # result = whisper_transcription(file, whisper_model, language)
-    result = whisper_transcription_hf(file, pipe, language)
-    print(result)
-    # Process outputs based on the response format
-    output = TranscriptionOutputs(file=file_name)
-
-    output.text = result['text']
-    if response_format == "json":
-        segments = [None] * len(result["chunks"])
-        for idx, seg in enumerate(result["chunks"]):
-            segments[idx] = Segment(
-                language=seg["language"], text=seg["text"], start=seg[
-                    "timestamp"][0], end=seg["timestamp"][1]
-            )
-
-        output.segments = segments
-    output.used_model = model_name + "_" + model_size
-    return output
-
-#API Run Port 8000
-#Run it in CLI:
-#uvicorn .app.src.api.main:app --reload: need to start from the most top
-# level using absolute path
-# folder to call other submodules
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload = True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_id", help="The model to use, e.g., openai/whisper-tiny")
+    parser.add_argument("--revision_id", help="The model revision to use, e.g., b5d...")
+    parser.add_argument("--model_dir", help="The location to look for model files, e.g., ~/.cache/huggingface/hub")
+    parser.add_argument("--audio_dir", help="The location to look for audio files, e.g., /tmp")
+    parser.add_argument("--port", type=int, help="The port to serve the API on (default: 8000).")
+    parser.add_argument("--host", help="The host to serve the API on (default: 127.0.0.1).")
+    args = parser.parse_args()
 
+    config = SpeechRecognitionInferenceConfig()
+
+    if os.getenv("SRI_MODEL_DIR") is not None:
+        config.model_dir = os.getenv("SRI_MODEL_DIR")
+    elif args.model_dir is not None:
+        config.model_dir = args.model_dir
+
+    if os.getenv("SRI_AUDIO_DIR") is not None:
+        config.audio_dir = os.getenv("SRI_AUDIO_DIR")
+    elif args.audio_dir is not None:
+        config.audio_dir = args.audio_dir
+
+    if os.getenv("SRI_PORT") is not None:
+        config.port = int(os.getenv("SRI_PORT"))
+    elif args.port is not None:
+        config.port = args.port
+
+    if os.getenv("SRI_HOST") is not None:
+        config.host = os.getenv("SRI_HOST")
+    elif args.host is not None:
+        config.host = args.host
+
+    if args.model_id is not None:
+        config.model_id = args.model_id
+
+    if args.revision_id is not None:
+        config.revision_id = args.revision_id
+
+    hf_access_token = os.getenv("HF_ACCESS_TOKEN", None)
+
+    print(f"MODEL_DIR={config.model_dir}")
+    print(f"MODEL_ID={config.model_id}")
+    print(f"REVISION_ID={config.revision_id}")
+    print(f"AUDIO_DIR={config.audio_dir}")
+    print(f"HF_ACCESS_TOKEN={hf_access_token}")
+
+    print("Loading pipeline...")
+    pipe = load_pipeline(config.model_dir, config.model_id, config.revision_id)
+
+    app = FastAPI()
+
+    @app.get("/")
+    def get_root():
+        return "Welcome to speech-recognition-inference API!"
+
+    @app.post(
+        "/transcribe", tags=["transcription"], response_description="Transcription Outputs"
+    )
+    def run_transcription(data: TranscriptionRequest) -> TranscriptionResponse:
+        """Perform speech-to-text transcription."""
+
+        audio_file, language, response_format = (
+            data.audio_file,
+            data.language,
+            data.response_format,
+        )
+
+        audio_path = os.path.join(config.audio_dir, audio_file)
+        result = transcribe_audio_file(audio_path, pipe, language)
+        output = TranscriptionResponse(audio_file=audio_file)
+        output.text = result["text"]
+        if response_format == "json":
+            segments = [None] * len(result["chunks"])
+            for idx, seg in enumerate(result["chunks"]):
+                segments[idx] = Segment(
+                    language=seg["language"],
+                    text=seg["text"],
+                    start=seg["timestamp"][0],
+                    end=seg["timestamp"][1],
+                )
+            output.segments = segments
+
+        return output
+
+    uvicorn.run(app, port=config.port, host=config.host)
