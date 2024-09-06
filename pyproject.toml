@@ -19,7 +19,16 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-
+dependencies = [
+  "fastapi",
+  "pydantic",
+  "uvicorn",
+  "transformers",
+  "torch",
+  "numpy < 2",
+  "huggingface_hub",
+  "accelerate",
+]
 [project.optional-dependencies]
 docs = [
     "myst_parser",
