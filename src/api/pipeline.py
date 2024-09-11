@@ -1,0 +1,129 @@
+import os
+from typing import Optional
+import torch
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, Pipeline, pipeline
+from huggingface_hub import snapshot_download, login, list_repo_commits
+
+
+def download_hf_models(
+    models: list[str],
+    hf_access_token: Optional[str],
+    cache_dir: Optional[str] = None,
+) -> None:
+    """Download models from the Hugging Face model hub.
+
+    Accepts an optional Hugging Face token for gated model access.
+
+    Args
+        - models: a list of model repos, e.g., ["openai/whisper-tiny"]
+        - hf_access_token: an optional Hugging Face access token.
+        - cache_dir: the directory to store model files to (default: ~/.cache/huggingface/hub)
+    """
+
+    if hf_access_token is not None:
+        login(token=hf_access_token)
+
+    for repo_id in models:
+        snapshot_download(repo_id=repo_id, cache_dir=cache_dir)
+
+
+def load_pipeline(
+    cache_dir: str,
+    model_id: str,
+    revision_id: Optional[str] = None,
+    hf_access_token: Optional[str] = None,
+) -> Pipeline:
+    """Load a pipeline.
+
+    Args
+        -
+    """
+
+    model_dir = "models--" + "--".join(model_id.split("/"))
+    model_path = os.path.join(os.path.join(cache_dir, model_dir))
+    if not os.path.isdir(os.path.join(model_path)):
+        raise FileNotFoundError(f"The model {model_id} does not exist in {cache_dir}")
+
+    snapshot_dir = os.path.join(model_path, "snapshots")
+
+    if revision_id is not None:
+        if not os.path.isdir(os.path.join(snapshot_dir, revision_id)):
+            raise FileNotFoundError(f"The model revision {revision_id} does not exist.")
+    else:
+        revisions = list(filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir)))
+        if len(revisions) == 0:
+            print(
+                "No revision provided and none found. Fetching the most recent available model."
+            )
+            download_hf_models(
+                [model_id], hf_access_token=hf_access_token, cache_dir=cache_dir
+            )
+            revisions = filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir))
+            revision_id = revisions[0]
+        else:
+            print("No revision provided. Using the most recent model found.")
+            revision_id = get_latest_commit(model_id, revisions)
+    revision_dir = os.path.join(snapshot_dir, revision_id)
+
+    print(f"Loading model {model_id} ({revision_id})...")
+
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+
+    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        revision_dir,
+        torch_dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        use_safetensors=True,
+    )
+
+    model.to(device)
+
+    processor = AutoProcessor.from_pretrained(revision_dir)
+
+    print("Done.")
+
+    return pipeline(
+        "automatic-speech-recognition",
+        model=model,
+        tokenizer=processor.tokenizer,
+        feature_extractor=processor.feature_extractor,
+        torch_dtype=torch_dtype,
+        device=device,
+    )
+
+
+def get_latest_commit(repo_id: str, revisions: list[str]) -> str:  # pragma: no cover
+    """Return the most recent revision for a model from a list of options."""
+    if len(revisions) == 0:
+        raise Exception("List of revisions should be non-empty.")
+    commits = map(lambda x: x.commit_id, list_repo_commits(repo_id))
+    for commit in commits:
+        if commit in revisions:
+            return revisions[revisions.index(commit)]
+    raise Exception("List of revisions should be a (non-empty) subset of repo commits.")
+
+
+def transcribe_audio_file(
+    audio_file: str, pipe: AutoModelForSpeechSeq2Seq, language: Optional[str] = None
+):
+    """
+    Run a Hugging Face transcription inference pipeline.
+
+    Args
+        - audio_file: an absolute path to an audio file.
+        - pipe: a AutoModelForSpeechSeq2Seq pipeline.
+        - language: the language of the audio. If not provided,  Whisper would
+    autodetect the language
+    """
+    if language is not None:
+        result = pipe(
+            audio_file,
+            return_timestamps=True,
+            return_language=True,
+            generate_kwargs={"language": language},
+        )
+    else:
+        result = pipe(audio_file, return_timestamps=True, return_language=True)
+
+    return result

@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append("/Users/jf3375/PycharmProjects/AudiotoTextAPI/src")
+sys.path.append("//src")
 
 import requests
 from fastapi.encoders import jsonable_encoder

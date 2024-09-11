@@ -1,6 +1,8 @@
-auditok
-openai-whisper @ git+https://github.com/openai/whisper.git@8bc8860694949db53c42ba47ddc23786c2e02a8b
-whisper-timestamped==1.14.1
 fastapi
+pydantic
 uvicorn
-pydevd-pycharm~=231.9225.15
+transformers
+torch
+numpy<2.0
+huggingface_hub
+accelerate

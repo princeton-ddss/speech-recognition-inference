@@ -3,32 +3,39 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["src"] # From which folder we start to build packages
+where = ["src"]
 
 [project]
-name = "audiototextapi" #package name is packageworkshop, package name needs to
-#be unique to be published
-#dynamic = ["version"] # specify version as a dynamic variable: dynamically set version by previous path
-version = "0.0.1" # Set version as fixed
+name = "speech-recognition-inference"
+version = "0.0.1"
 authors = [
   { name="Junying (Alice) Fang", email="jf3375@princeton.edu" },
 ]
-description = "The ML Application to Peform SpeechtoText Transcription"
+description = "A Speech-to-Text API."
 readme = "README.md"
-requires-python = ">=3.7" # The error would occurs when users install this package on python versions below 3.7
-classifiers = [ # Show basic information of packages
+requires-python = ">=3.7"
+classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-
+dependencies = [
+  "fastapi",
+  "pydantic",
+  "uvicorn",
+  "transformers",
+  "torch",
+  "numpy < 2",
+  "huggingface_hub",
+  "accelerate",
+]
 [project.optional-dependencies]
-docs = [ # These packages would not be automatically installed. The users may need to install them if they want more functionalities
+docs = [
     "myst_parser",
     "sphinx",
     "sphinx-rtd-theme"
 ]
 
-[project.urls] # Helpful Links Related to Package
-"Homepage" = "https://github.com/princeton-ddss/AudiotoTextAPI"
+[project.urls]
+"Homepage" = "https://github.com/princeton-ddss/speech-recognition-inference"
 
