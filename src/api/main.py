@@ -10,12 +10,28 @@ from pipeline import load_pipeline, download_hf_models, transcribe_audio_file
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_id", help="The model to use, e.g., openai/whisper-tiny")
+    parser.add_argument(
+        "--model_id", help="The model to use, e.g., openai/whisper-tiny"
+    )
     parser.add_argument("--revision_id", help="The model revision to use, e.g., b5d...")
-    parser.add_argument("--model_dir", help="The location to look for model files, e.g., ~/.cache/huggingface/hub")
-    parser.add_argument("--audio_dir", help="The location to look for audio files, e.g., /tmp")
-    parser.add_argument("--port", type=int, help="The port to serve the API on (default: 8000).")
-    parser.add_argument("--host", help="The host to serve the API on (default: 127.0.0.1).")
+    parser.add_argument(
+        "--model_dir",
+        help="The location to look for model files, e.g., ~/.cache/huggingface/hub",
+    )
+    parser.add_argument(
+        "--audio_dir", help="The location to look for audio files, e.g., /tmp"
+    )
+    parser.add_argument(
+        "--port", type=int, help="The port to serve the API on (default: 8000)."
+    )
+    parser.add_argument(
+        "--host", help="The host to serve the API on (default: 127.0.0.1)."
+    )
+    # parser.add_argument(
+    #     "--reload",
+    #     help="Automatically reload after changes to the source code (for development).",
+    #     default=True,
+    # )
     args = parser.parse_args()
 
     config = SpeechRecognitionInferenceConfig()
@@ -25,10 +41,18 @@ if __name__ == "__main__":
     elif args.model_dir is not None:
         config.model_dir = args.model_dir
 
+    if not os.path.isdir(config.model_dir):
+        raise Exception(f"model_dir {config.model_dir} does not exist. ")
+
     if os.getenv("SRI_AUDIO_DIR") is not None:
         config.audio_dir = os.getenv("SRI_AUDIO_DIR")
     elif args.audio_dir is not None:
         config.audio_dir = args.audio_dir
+
+    if config.audio_dir is None:
+        raise Exception(
+            f"An audio directory is required. Either set the SRI_AUDIO_DIR environment variables or pass in a value for --audio_dir"
+        )
 
     if os.getenv("SRI_PORT") is not None:
         config.port = int(os.getenv("SRI_PORT"))
@@ -64,7 +88,9 @@ if __name__ == "__main__":
         return "Welcome to speech-recognition-inference API!"
 
     @app.post(
-        "/transcribe", tags=["transcription"], response_description="Transcription Outputs"
+        "/transcribe",
+        tags=["transcription"],
+        response_description="Transcription Outputs",
     )
     def run_transcription(data: TranscriptionRequest) -> TranscriptionResponse:
         """Perform speech-to-text transcription."""
