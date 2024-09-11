@@ -9,6 +9,6 @@ class SpeechRecognitionInferenceConfig(BaseModel):
     model_dir: str = "/data/models"
     model_id: Optional[str] = "openai/whisper-tiny"
     revision_id: Optional[str] = None
-    audio_dir: str = "/data/audio"
+    audio_dir: Optional[str] = None
     port: int = 8000
     host: str = "0.0.0.0"
