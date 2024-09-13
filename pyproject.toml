@@ -1,18 +1,21 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
+requires = [
+  "hatchling",
+]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/api"]
 
 [project]
 name = "speech-recognition-inference"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
   { name="Junying (Alice) Fang", email="jf3375@princeton.edu" },
 ]
 description = "A Speech-to-Text API."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -29,6 +32,10 @@ dependencies = [
   "huggingface_hub",
   "accelerate",
 ]
+
+[project.scripts]
+speech_recognition_launcher = "api.main:launch"
+
 [project.optional-dependencies]
 docs = [
     "myst_parser",

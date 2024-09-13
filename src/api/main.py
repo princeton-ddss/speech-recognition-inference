@@ -3,12 +3,12 @@ import argparse
 from fastapi import FastAPI
 import uvicorn
 
-from config import SpeechRecognitionInferenceConfig
-from models import TranscriptionRequest, TranscriptionResponse, Segment
-from pipeline import load_pipeline, download_hf_models, transcribe_audio_file
+from api.config import SpeechRecognitionInferenceConfig
+from api.models import TranscriptionRequest, TranscriptionResponse, Segment
+from api.pipeline import load_pipeline, download_hf_models, transcribe_audio_file
 
 
-if __name__ == "__main__":
+def launch():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--model_id", help="The model to use, e.g., openai/whisper-tiny"
@@ -41,6 +41,11 @@ if __name__ == "__main__":
     elif args.model_dir is not None:
         config.model_dir = args.model_dir
 
+
+    if config.model_dir is None:
+        raise Exception(
+            f"A model directory is required. Either set the SRI_AUDIO_DIR environment variables or pass in a value for --model_dir"
+        )
     if not os.path.isdir(config.model_dir):
         raise Exception(f"model_dir {config.model_dir} does not exist. ")
 
@@ -53,6 +58,8 @@ if __name__ == "__main__":
         raise Exception(
             f"An audio directory is required. Either set the SRI_AUDIO_DIR environment variables or pass in a value for --audio_dir"
         )
+    if not os.path.isdir(config.audio_dir):
+        raise Exception(f"audio_dir {config.audio_dir} does not exist. ")
 
     if os.getenv("SRI_PORT") is not None:
         config.port = int(os.getenv("SRI_PORT"))
@@ -119,3 +126,8 @@ if __name__ == "__main__":
         return output
 
     uvicorn.run(app, port=config.port, host=config.host)
+    
+
+
+if __name__ == "__main__":
+    launch()

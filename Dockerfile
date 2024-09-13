@@ -6,21 +6,21 @@ FROM python:${PYTHON_VERSION} AS base
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /app
 
 RUN apt-get update --yes && \
-    apt-get install --yes --no-install-recommends \
-    ffmpeg
+apt-get install --yes --no-install-recommends \
+ffmpeg
 
-RUN --mount=type=cache,target=/root/.cache/pip \
-    --mount=type=bind,source=requirements.txt,target=requirements.txt \
-    python -m pip install -r requirements.txt
+WORKDIR /app
+# RUN --mount=type=cache,target=/root/.cache/pip \
+#     --mount=type=bind,source=requirements.txt,target=requirements.txt \
+#     python -m pip install -r requirements.txt
+COPY . .
+RUN pip install .
 
 RUN mkdir -p /data
 RUN mkdir -p /data/models
 RUN mkdir -p /data/audio
 
-COPY . .
-
-ENTRYPOINT ["python", "src/api/main.py", "--audio_dir", "/data/audio"]
-CMD ["--host", "0.0.0.0", "--port", "8000", "--model_dir", "/data/models", "--audio_dir", "/data/audio"]
+ENTRYPOINT ["python", "src/api/main.py", "--audio_dir", "/data/audio", "--model_dir", "/data/models"]
+CMD []
