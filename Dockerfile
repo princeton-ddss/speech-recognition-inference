@@ -23,4 +23,4 @@ RUN mkdir -p /data/audio
 COPY . .
 
 ENTRYPOINT ["python", "src/api/main.py", "--audio_dir", "/data/audio"]
-CMD ["--host", "0.0.0.0", "--port", "8000", "--model_dir", "/data/models", "--audio_dir", "/data/audio", "--reload", "False"]
+CMD ["--host", "0.0.0.0", "--port", "8000", "--model_dir", "/data/models", "--audio_dir", "/data/audio"]
