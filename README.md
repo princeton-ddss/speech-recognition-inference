@@ -3,16 +3,21 @@ A Speech-to-Text API compatible HuggingFace models.
 
 ## Quickstart
 
+### Requirements
+1. `ffmpeg`
+
 ### Pip
 git clone https://github.com/princeton-ddss/speech-recognition-inference.git
 cd speech-recognition-inference
 python -m venv venv
+pip install --upgrade pip
 pip install . # or pip install -e . for development
 python src/api/main.py \
   --port 8000:8000 \ 
   --model_id openai/whisper-large-v3 \
   --audio_dir /tmp \
-  --cache_dir $HOME/.cache/huggingface/hub
+  --model_dir $HOME/.cache/huggingface/hub
+  --allow_downloads False
 
 curl localhost:8000/transcribe \  -X POST \
   -d '{"audio_file": "female.wav", "response_format": "json"}' \
@@ -27,7 +32,8 @@ docker run \
   --port 8000 \
   --model_id openai/whisper-large-v3 \
   --audio_dir /data/audio \
-  --cache_dir /data/models
+  --model_dir /data/models
+  --allow_downloads False
 
 curl localhost:8000/transcribe \  -X POST \
   -d '{"audio_file": "female.wav", "response_format": "json"}' \
