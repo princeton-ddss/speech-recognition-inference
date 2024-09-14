@@ -4,6 +4,8 @@ import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, Pipeline, pipeline
 from huggingface_hub import snapshot_download, login, list_repo_commits
 
+from api.logger import logger
+
 
 def download_hf_models(
     models: list[str],
@@ -54,7 +56,7 @@ def load_pipeline(
             filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir))
         )
         if len(revisions) == 0:
-            print(
+            logger.warning(
                 "No revision provided and none found. Fetching the most recent"
                 " available model."
             )
@@ -66,11 +68,11 @@ def load_pipeline(
             )
             revision_id = revisions[0]
         else:
-            print("No revision provided. Using the most recent model found.")
+            logger.info("No revision provided. Using the most recent model available.")
             revision_id = get_latest_commit(model_id, revisions)
     revision_dir = os.path.join(snapshot_dir, revision_id)
 
-    print(f"Loading model {model_id} ({revision_id})...")
+    logger.info(f"Loading model {model_id} ({revision_id})...")
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
@@ -85,8 +87,6 @@ def load_pipeline(
     model.to(device)
 
     processor = AutoProcessor.from_pretrained(revision_dir)
-
-    print("Done.")
 
     return pipeline(
         "automatic-speech-recognition",

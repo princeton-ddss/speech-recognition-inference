@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from api.config import SpeechRecognitionInferenceConfig
 from api.models import TranscriptionRequest, TranscriptionResponse, Segment
 from api.pipeline import load_pipeline, transcribe_audio_file
+from api.logger import logger
 
 
 parser = argparse.ArgumentParser()
@@ -23,8 +24,9 @@ parser.add_argument(
 parser.add_argument("--host", help="The host to serve the API on (default: 127.0.0.1).")
 parser.add_argument(
     "--reload",
+    type=bool,
     help="Automatically reload after changes to the source code (for development).",
-    default=True,
+    default=False,
 )
 args = parser.parse_args()
 
@@ -72,17 +74,17 @@ if args.model_id is not None:
 if args.revision_id is not None:
     config.revision_id = args.revision_id
 
+config.auto_reload = args.reload
+
 hf_access_token = os.getenv("HF_ACCESS_TOKEN", None)
 
-print(f"MODEL_DIR={config.model_dir}")
-print(f"MODEL_ID={config.model_id}")
-print(f"REVISION_ID={config.revision_id}")
-print(f"AUDIO_DIR={config.audio_dir}")
-print(f"HF_ACCESS_TOKEN={hf_access_token}")
+logger.info(
+    f"Initializing speech_recognition_inference service (model_dir={config.model_dir},"
+    f" revision_id={config.revision_id}, model_id={config.model_id},"
+    f" audio_dir={config.audio_dir}, hf_access_token={hf_access_token})"
+)
 
-print("Loading pipeline...")
 pipe = load_pipeline(config.model_dir, config.model_id, config.revision_id)
-
 
 app = FastAPI()
 
