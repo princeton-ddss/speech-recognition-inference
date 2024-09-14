@@ -50,15 +50,20 @@ def load_pipeline(
         if not os.path.isdir(os.path.join(snapshot_dir, revision_id)):
             raise FileNotFoundError(f"The model revision {revision_id} does not exist.")
     else:
-        revisions = list(filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir)))
+        revisions = list(
+            filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir))
+        )
         if len(revisions) == 0:
             print(
-                "No revision provided and none found. Fetching the most recent available model."
+                "No revision provided and none found. Fetching the most recent"
+                " available model."
             )
             download_hf_models(
                 [model_id], hf_access_token=hf_access_token, cache_dir=cache_dir
             )
-            revisions = filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir))
+            revisions = filter(
+                lambda x: not x.startswith("."), os.listdir(snapshot_dir)
+            )
             revision_id = revisions[0]
         else:
             print("No revision provided. Using the most recent model found.")

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from api.config import SpeechRecognitionInferenceConfig
 from api.models import TranscriptionRequest, TranscriptionResponse, Segment
-from api.pipeline import load_pipeline, download_hf_models, transcribe_audio_file
+from api.pipeline import load_pipeline, transcribe_audio_file
 
 
 parser = argparse.ArgumentParser()
@@ -37,7 +37,8 @@ elif args.model_dir is not None:
 
 if config.model_dir is None:
     raise Exception(
-        f"A model directory is required. Either set the SRI_AUDIO_DIR environment variables or pass in a value for --model_dir"
+        "A model directory is required. Either set the SRI_AUDIO_DIR environment"
+        " variables or pass in a value for --model_dir"
     )
 if not os.path.isdir(config.model_dir):
     raise Exception(f"model_dir {config.model_dir} does not exist. ")
@@ -49,7 +50,8 @@ elif args.audio_dir is not None:
 
 if config.audio_dir is None:
     raise Exception(
-        f"An audio directory is required. Either set the SRI_AUDIO_DIR environment variables or pass in a value for --audio_dir"
+        "An audio directory is required. Either set the SRI_AUDIO_DIR environment"
+        " variables or pass in a value for --audio_dir"
     )
 if not os.path.isdir(config.audio_dir):
     raise Exception(f"audio_dir {config.audio_dir} does not exist. ")

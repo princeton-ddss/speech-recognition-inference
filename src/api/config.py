@@ -3,9 +3,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class SpeechRecognitionInferenceConfig(BaseModel):
-    model_config = ConfigDict(
-        protected_namespaces=()
-    )
+    model_config = ConfigDict(protected_namespaces=())
     model_id: Optional[str] = "openai/whisper-tiny"
     revision_id: Optional[str] = None
     model_dir: Optional[str] = None
