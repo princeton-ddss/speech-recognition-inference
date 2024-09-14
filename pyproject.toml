@@ -34,7 +34,7 @@ dependencies = [
 ]
 
 [project.scripts]
-speech_recognition_launcher = "api.main:launch"
+speech_recognition_launcher = "api.cli:launch"
 
 [project.optional-dependencies]
 docs = [

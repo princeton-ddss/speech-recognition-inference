@@ -22,5 +22,5 @@ RUN mkdir -p /data
 RUN mkdir -p /data/models
 RUN mkdir -p /data/audio
 
-ENTRYPOINT ["python", "src/api/main.py", "--audio_dir", "/data/audio", "--model_dir", "/data/models"]
+ENTRYPOINT ["speech_recognition_launcher", "--audio_dir", "/data/audio", "--model_dir", "/data/models"]
 CMD []

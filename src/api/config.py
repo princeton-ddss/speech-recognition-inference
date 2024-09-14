@@ -12,3 +12,4 @@ class SpeechRecognitionInferenceConfig(BaseModel):
     audio_dir: Optional[str] = None
     port: int = 8000
     host: str = "0.0.0.0"
+    reload: bool = False
