@@ -67,6 +67,9 @@ def load_pipeline(
                 lambda x: not x.startswith("."), os.listdir(snapshot_dir)
             )
             revision_id = revisions[0]
+        elif len(revisions) == 1:
+            logger.info("No revision provided. Using the most recent model available.")
+            revision_id = revisions[0]
         else:
             logger.info("No revision provided. Using the most recent model available.")
             revision_id = get_latest_commit(model_id, revisions)
