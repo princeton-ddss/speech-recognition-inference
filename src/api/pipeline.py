@@ -4,6 +4,8 @@ import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, Pipeline, pipeline
 from huggingface_hub import snapshot_download, login, list_repo_commits
 
+from api.logger import logger
+
 
 def download_hf_models(
     models: list[str],
@@ -50,22 +52,30 @@ def load_pipeline(
         if not os.path.isdir(os.path.join(snapshot_dir, revision_id)):
             raise FileNotFoundError(f"The model revision {revision_id} does not exist.")
     else:
-        revisions = list(filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir)))
+        revisions = list(
+            filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir))
+        )
         if len(revisions) == 0:
-            print(
-                "No revision provided and none found. Fetching the most recent available model."
+            logger.warning(
+                "No revision provided and none found. Fetching the most recent"
+                " available model."
             )
             download_hf_models(
                 [model_id], hf_access_token=hf_access_token, cache_dir=cache_dir
             )
-            revisions = filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir))
+            revisions = filter(
+                lambda x: not x.startswith("."), os.listdir(snapshot_dir)
+            )
+            revision_id = revisions[0]
+        elif len(revisions) == 1:
+            logger.info("No revision provided. Using the most recent model available.")
             revision_id = revisions[0]
         else:
-            print("No revision provided. Using the most recent model found.")
+            logger.info("No revision provided. Using the most recent model available.")
             revision_id = get_latest_commit(model_id, revisions)
     revision_dir = os.path.join(snapshot_dir, revision_id)
 
-    print(f"Loading model {model_id} ({revision_id})...")
+    logger.info(f"Loading model {model_id} ({revision_id})...")
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
@@ -80,8 +90,6 @@ def load_pipeline(
     model.to(device)
 
     processor = AutoProcessor.from_pretrained(revision_dir)
-
-    print("Done.")
 
     return pipeline(
         "automatic-speech-recognition",

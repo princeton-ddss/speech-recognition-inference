@@ -1,41 +1,51 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
+requires = [
+  "hatchling",
+]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/api"]
 
 [project]
 name = "speech-recognition-inference"
-version = "0.0.1"
+version = "0.1.0"
+description = "A Speech-to-Text API."
+readme = "README.md"
+license = "MIT"
 authors = [
   { name="Junying (Alice) Fang", email="jf3375@princeton.edu" },
 ]
-description = "A Speech-to-Text API."
-readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-  "fastapi",
-  "pydantic",
-  "uvicorn",
-  "transformers",
-  "torch",
-  "numpy < 2",
-  "huggingface_hub",
   "accelerate",
+  "fastapi",
+  "huggingface_hub",
+  "nox",
+  "numpy<2",
+  "pre-commit",
+  "pydantic",
+  "torch",
+  "transformers",
+  "uvicorn",
 ]
 [project.optional-dependencies]
 docs = [
-    "myst_parser",
-    "sphinx",
-    "sphinx-rtd-theme"
+  "myst_parser",
+  "sphinx",
+  "sphinx-rtd-theme",
 ]
-
 [project.urls]
 "Homepage" = "https://github.com/princeton-ddss/speech-recognition-inference"
-
+[project.scripts]
+speech_recognition_launcher = "api.cli:launch"
