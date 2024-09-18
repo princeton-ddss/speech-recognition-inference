@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
 from api import pipe
-from .models import TranscriptionRequest, TranscriptionResponse, Segment
-from .pipeline import transcribe_audio_file
+from api.models import TranscriptionRequest, TranscriptionResponse, Segment
+from api.pipeline import transcribe_audio_file
 
 
 app = FastAPI()

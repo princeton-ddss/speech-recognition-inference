@@ -55,3 +55,5 @@ logger.info(
 )
 
 pipe = load_pipeline(config.model_dir, config.model_id, config.revision_id)
+
+logger.info(f"Finished Loading model")

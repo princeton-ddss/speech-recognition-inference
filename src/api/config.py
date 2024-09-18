@@ -14,6 +14,6 @@ class SpeechRecognitionInferenceConfig:
                                          "/Users/jf3375/Desktop/asr_api/models/Whisper_hf")
     audio_dir: Optional[str] = os.getenv("audio_dir",
                                          "/Users/jf3375/Desktop/asr_api/data")
-    port: int = os.getenv("model_dir", 8000)
+    port: int = os.getenv("model_dir", 8080)
     host: str = os.getenv("model_dir", "0.0.0.0")
     auto_reload: bool = False
