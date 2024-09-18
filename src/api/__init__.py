@@ -2,8 +2,7 @@ import os
 
 from api.config import SpeechRecognitionInferenceConfig
 from api.parser import SpeechRecognitionInferenceParser
-from api.models import TranscriptionRequest, TranscriptionResponse, Segment
-from api.pipeline import load_pipeline, transcribe_audio_file
+from api.pipeline import load_pipeline
 from api.logger import logger
 
 args = SpeechRecognitionInferenceParser.parse_args()
@@ -56,4 +55,4 @@ logger.info(
 
 pipe = load_pipeline(config.model_dir, config.model_id, config.revision_id)
 
-logger.info(f"Finished Loading model")
+logger.info("Finished Loading model")
