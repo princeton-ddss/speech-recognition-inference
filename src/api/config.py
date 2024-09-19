@@ -1,3 +1,5 @@
+import os
+
 from typing import Optional
 from dataclasses import dataclass
 from pydantic import ConfigDict
@@ -8,8 +10,7 @@ class SpeechRecognitionInferenceConfig:
     model_config = ConfigDict(protected_namespaces=())
     model_id: Optional[str] = "openai/whisper-tiny"
     revision_id: Optional[str] = None
-    model_dir: Optional[str] = None
-    audio_dir: Optional[str] = None
-    port: int = 8000
-    host: str = "0.0.0.0"
+    model_dir: Optional[str] = os.getenv("SRI_MODEL_DIR")
+    port: int = os.getenv("SRI_PORT", 8080)
+    host: str = os.getenv("SRI_HOST", "0.0.0.0")
     auto_reload: bool = False

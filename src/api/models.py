@@ -3,7 +3,7 @@ from typing import Union, Literal, Optional
 
 
 class TranscriptionRequest(BaseModel):
-    audio_file: str = Field(examples=["audio.wav"])
+    audio_path: str = Field(examples=["/data/audio.wav"])
     language: Literal[
         "english",
         "chinese",
@@ -130,7 +130,7 @@ class Segment(BaseModel):
 
 
 class TranscriptionResponse(BaseModel):
-    audio_file: str = Field(examples=["audio.wav"])
+    audio_path: str = Field(examples=["/data/audio.wav"])
     text: Union[None, str] = Field(default=None, examples=["Hello World"])
     segments: Union[list[Segment], None] = Field(
         default=None,
