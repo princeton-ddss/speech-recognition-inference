@@ -5,7 +5,8 @@ from api.parser import SpeechRecognitionInferenceParser
 from api.pipeline import load_pipeline
 from api.logger import logger
 
-args = SpeechRecognitionInferenceParser.parse_args()
+
+args = SpeechRecognitionInferenceParser().parse_args()
 
 config = SpeechRecognitionInferenceConfig()
 
@@ -14,22 +15,11 @@ if args.model_dir is not None:
 
 if config.model_dir is None:
     raise Exception(
-        "A model directory is required. Either set the SRI_AUDIO_DIR environment"
+        "A model directory is required. Either set the SRI_MODEL_DIR environment"
         " variables or pass in a value for --model_dir"
     )
 if not os.path.isdir(config.model_dir):
-    raise Exception(f"model_dir {config.model_dir} does not exist. ")
-
-if args.audio_dir is not None:
-    config.audio_dir = args.audio_dir
-
-if config.audio_dir is None:
-    raise Exception(
-        "An audio directory is required. Either set the SRI_AUDIO_DIR environment"
-        " variables or pass in a value for --audio_dir"
-    )
-if not os.path.isdir(config.audio_dir):
-    raise Exception(f"audio_dir {config.audio_dir} does not exist. ")
+    raise Exception(f"model_dir {config.model_dir} does not exist.")
 
 if args.port is not None:
     config.port = args.port
@@ -50,9 +40,14 @@ hf_access_token = os.getenv("HF_ACCESS_TOKEN", None)
 logger.info(
     f"Initializing speech_recognition_inference service (model_dir={config.model_dir},"
     f" revision_id={config.revision_id}, model_id={config.model_id},"
-    f" audio_dir={config.audio_dir}, hf_access_token={hf_access_token})"
+    f" hf_access_token={hf_access_token})"
 )
 
-pipe = load_pipeline(config.model_dir, config.model_id, config.revision_id)
+pipe = load_pipeline(
+    config.model_dir,
+    config.model_id,
+    config.revision_id,
+    hf_access_token=hf_access_token,
+)
 
 logger.info("Finished Loading model")

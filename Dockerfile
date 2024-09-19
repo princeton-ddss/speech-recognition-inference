@@ -22,4 +22,4 @@ RUN mkdir -p /data
 RUN mkdir -p /data/models
 RUN mkdir -p /data/audio
 
-ENTRYPOINT ["speech_recognition_launcher", "--audio_dir", "/data/audio", "--model_dir", "/data/models"]
+ENTRYPOINT ["speech_recognition_launcher", "--model_dir", "/data/models"]
