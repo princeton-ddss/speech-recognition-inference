@@ -41,10 +41,10 @@ def load_pipeline(
         -
     """
 
-    model_dir = "models--" + "--".join(model_id.split("/"))
-    model_path = os.path.join(os.path.join(cache_dir, model_dir))
-    if not os.path.isdir(os.path.join(model_path)):
-        raise FileNotFoundError(f"The model {model_id} does not exist in {cache_dir}")
+    model_path = os.path.join(os.path.join(cache_dir, "models--"+model_id.replace('/', '--')))
+    print("The model directory is {}".format(model_path))
+    if not os.path.isdir(model_path):
+        raise FileNotFoundError(f"The model directory does not exist")
 
     snapshot_dir = os.path.join(model_path, "snapshots")
 
