@@ -32,7 +32,7 @@ def download_hf_models(
 def load_pipeline(
     cache_dir: str,
     model_id: str,
-    revision_id: Optional[str] = None,
+    revision: Optional[str] = None,
     hf_access_token: Optional[str] = None,
 ) -> Pipeline:
     """Load a pipeline.
@@ -48,9 +48,9 @@ def load_pipeline(
 
     snapshot_dir = os.path.join(model_path, "snapshots")
 
-    if revision_id is not None:
-        if not os.path.isdir(os.path.join(snapshot_dir, revision_id)):
-            raise FileNotFoundError(f"The model revision {revision_id} does not exist.")
+    if revision is not None:
+        if not os.path.isdir(os.path.join(snapshot_dir, revision)):
+            raise FileNotFoundError(f"The model revision {revision} does not exist.")
     else:
         revisions = list(
             filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir))
@@ -66,16 +66,16 @@ def load_pipeline(
             revisions = filter(
                 lambda x: not x.startswith("."), os.listdir(snapshot_dir)
             )
-            revision_id = revisions[0]
+            revision = revisions[0]
         elif len(revisions) == 1:
             logger.info("No revision provided. Using the most recent model available.")
-            revision_id = revisions[0]
+            revision = revisions[0]
         else:
             logger.info("No revision provided. Using the most recent model available.")
-            revision_id = get_latest_commit(model_id, revisions)
-    revision_dir = os.path.join(snapshot_dir, revision_id)
+            revision = get_latest_commit(model_id, revisions)
+    revision_dir = os.path.join(snapshot_dir, revision)
 
-    logger.info(f"Loading model {model_id} ({revision_id})...")
+    logger.info(f"Loading model {model_id} ({revision})...")
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32

@@ -8,8 +8,8 @@ def test_load_pipeline_missing_model_id():
     pass
 
 
-def test_load_pipeline_missing_revision_id():
-    # 3. should error if revision_id does not exist
+def test_load_pipeline_missing_revision():
+    # 3. should error if revision does not exist
     pass
 
 

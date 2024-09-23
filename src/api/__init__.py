@@ -30,8 +30,8 @@ if args.host is not None:
 if args.model_id is not None:
     config.model_id = args.model_id
 
-if args.revision_id is not None:
-    config.revision_id = args.revision_id
+if args.revision is not None:
+    config.revision = args.revision
 
 config.auto_reload = args.reload
 
@@ -39,14 +39,14 @@ hf_access_token = os.getenv("HF_ACCESS_TOKEN", None)
 
 logger.info(
     f"Initializing speech_recognition_inference service (model_dir={config.model_dir},"
-    f" revision_id={config.revision_id}, model_id={config.model_id},"
+    f" revision={config.revision}, model_id={config.model_id},"
     f" hf_access_token={hf_access_token})"
 )
 
 pipe = load_pipeline(
     config.model_dir,
     config.model_id,
-    config.revision_id,
+    config.revision,
     hf_access_token=hf_access_token,
 )
 

@@ -8,7 +8,7 @@ class SpeechRecognitionInferenceParser(ArgumentParser):
             "--model_id", help="The model to use (default: openai/whisper-tiny)."
         )
         self.add_argument(
-            "--revision_id",
+            "--revision",
             help=(
                 "The model revision to use. Defaults to the most recent revision"
                 " available."
