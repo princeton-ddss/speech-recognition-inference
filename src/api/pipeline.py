@@ -44,6 +44,7 @@ def load_pipeline(
     model_path = os.path.join(
         os.path.join(cache_dir, "models--" + model_id.replace("/", "--"))
     )
+
     print("The model directory is {}".format(model_path))
     if not os.path.isdir(model_path):
         raise FileNotFoundError("The model directory does not exist")
@@ -76,6 +77,8 @@ def load_pipeline(
             logger.info("No revision provided. Using the most recent model available.")
             revision = get_latest_commit(model_id, revisions)
     revision_dir = os.path.join(snapshot_dir, revision)
+
+    logger.info("The model directory is {}".format(model_path))
 
     logger.info(f"Loading model {model_id} ({revision})...")
 
