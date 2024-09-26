@@ -76,7 +76,7 @@ jobs:
           tags: ghcr.io/${{env.IMAGE_NAME}}:main
           cache-from: |
             ghcr.io/${{env.IMAGE_NAME}}:latest
-          cache-to: type=registry,ref=ghcr.io/${{env.IMAGE_NAME}}:cache,mode=max
+          cache-to: type=registry,ref=ghcr.io/${{env.IMAGE_NAME}}:latest,mode=max
 
       # Step 7: Build Docker Image for Pull Requests (without pushing)
       - name: Build Docker Image (Pull Request)
@@ -89,12 +89,12 @@ jobs:
           tags: ghcr.io/${{env.IMAGE_NAME}}:pr-${{ github.event.pull_request.number }}
           cache-from: |
             ghcr.io/${{env.IMAGE_NAME}}:latest
-          cache-to: type=registry,ref=ghcr.io/${{env.IMAGE_NAME}}:cache,mode=max
+          cache-to: type=registry,ref=ghcr.io/${{env.IMAGE_NAME}}:latest,mode=max
 
       # Build and Push Docker image with Buildx when new tag is published
       - name: Build and Push Docker Image (New Tag is Published)
         if: github.event_name == 'push' && startsWith(github.ref,'refs/tags/v')
-        id: build
+        id: build-and-push
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -106,18 +106,18 @@ jobs:
             ghcr.io/${{env.IMAGE_NAME}}:latest
           cache-from: |
             ghcr.io/${{env.IMAGE_NAME}}:latest
-          cache-to: type=registry,ref=ghcr.io/${{env.IMAGE_NAME}}:cache,mode=max
+          cache-to: type=registry,ref=ghcr.io/${{env.IMAGE_NAME}}:latest,mode=max
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
       # repository is public to avoid leaking data.  If you would like to publish
       # transparency data even for private images, pass --force to cosign below.
       # https://github.com/sigstore/cosign
-      - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
+      - name: Sign the published Docker image (New Tag is Published)
+        if: ${{ github.event_name == 'push' && startsWith(github.ref,'refs/tags/v')}}
         env:
           # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-          TAGS: ${{ steps.meta.outputs.tags }}
+          TAGS: ${{ env.VERSION }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
