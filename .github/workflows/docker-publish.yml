@@ -102,7 +102,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{env.IMAGE_NAME}}:${{env.VERSION}}  
+            ghcr.io/${{env.IMAGE_NAME}}:${{env.VERSION}}
             ghcr.io/${{env.IMAGE_NAME}}:latest
           cache-from: |
             ghcr.io/${{env.IMAGE_NAME}}:latest
