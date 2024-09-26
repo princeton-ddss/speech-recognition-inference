@@ -73,10 +73,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false  # Don't push the image for branch pushes
+          no-cache: true
           tags: ghcr.io/${{env.IMAGE_NAME}}:main
-          cache-from: |
-            ghcr.io/${{env.IMAGE_NAME}}:latest
-          cache-to: type=registry,ref=ghcr.io/${{env.IMAGE_NAME}}:latest,mode=max
 
       # Step 7: Build Docker Image for Pull Requests (without pushing)
       - name: Build Docker Image (Pull Request)
@@ -86,10 +84,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false  # Don't push the image for pull requests
+          no-cache: true
           tags: ghcr.io/${{env.IMAGE_NAME}}:pr-${{ github.event.pull_request.number }}
-          cache-from: |
-            ghcr.io/${{env.IMAGE_NAME}}:latest
-          cache-to: type=registry,ref=ghcr.io/${{env.IMAGE_NAME}}:latest,mode=max
 
       # Build and Push Docker image with Buildx when new tag is published
       - name: Build and Push Docker Image (New Tag is Published)
@@ -101,12 +97,11 @@ jobs:
           file: ./Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
+          no-cache: true
           tags: |
             ghcr.io/${{env.IMAGE_NAME}}:${{env.VERSION}}
             ghcr.io/${{env.IMAGE_NAME}}:latest
-          cache-from: |
-            ghcr.io/${{env.IMAGE_NAME}}:latest
-          cache-to: type=registry,ref=ghcr.io/${{env.IMAGE_NAME}}:latest,mode=max
+
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
@@ -115,10 +110,6 @@ jobs:
       # https://github.com/sigstore/cosign
       - name: Sign the published Docker image (New Tag is Published)
         if: ${{ github.event_name == 'push' && startsWith(github.ref,'refs/tags/v')}}
-        env:
-          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-          TAGS: ${{ env.VERSION }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+        run: cosign sign ghcr.io/${{env.IMAGE_NAME}}:${{env.VERSION}}
