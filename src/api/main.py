@@ -1,22 +1,24 @@
 from fastapi import FastAPI
+from fastapi import Response
 
 from api import pipe
 from api.models import TranscriptionRequest, TranscriptionResponse, Segment
 from api.pipeline import transcribe_audio_file
 
 
-app = FastAPI()
+app = FastAPI(title="Speech Recognition Inference")
 
 
-@app.get("/")
+@app.get("/", tags=["Speech Recognition Inference"], summary="Welcome message")
 def get_root():
     return "Welcome to speech-recognition-inference API!"
 
 
 @app.post(
     "/transcribe",
-    tags=["transcription"],
-    response_description="Transcription Outputs",
+    response_description="Transcription output",
+    summary="Transcribe audio",
+    tags=["Speech Recognition Inference"],
 )
 def run_transcription(data: TranscriptionRequest) -> TranscriptionResponse:
     """Perform speech-to-text transcription."""
@@ -42,3 +44,13 @@ def run_transcription(data: TranscriptionRequest) -> TranscriptionResponse:
         output.segments = segments
 
     return output
+
+
+@app.get(
+    "/health",
+    response_description="Health check response",
+    summary="Health check",
+    tags=["Speech Recognition Inference"],
+)
+def health_check() -> Response:
+    return Response()
