@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi import Response
+from fastapi.middleware.cors import CORSMiddleware
 
 from api import pipe
 from api.models import TranscriptionRequest, TranscriptionResponse, Segment
@@ -7,6 +8,14 @@ from api.pipeline import transcribe_audio_file
 
 
 app = FastAPI(title="Speech Recognition Inference")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/", tags=["Speech Recognition Inference"], summary="Welcome message")
