@@ -5,10 +5,17 @@ from api.parser import SpeechRecognitionInferenceParser
 from api.pipeline import load_pipeline
 from api.logger import logger
 
+from dotenv import load_dotenv
+
+# Load all environment variables from .env file passed via
+# docker run --env-file /path/to/your/.env your_docker_image
+
+load_dotenv()
 
 args = SpeechRecognitionInferenceParser().parse_args()
 
 config = SpeechRecognitionInferenceConfig()
+print("config", config.token)
 
 if args.model_dir is not None:
     config.model_dir = args.model_dir

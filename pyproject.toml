@@ -38,6 +38,8 @@ dependencies = [
   "torch",
   "transformers",
   "uvicorn",
+  "slowapi",
+  "python-dotenv"
 ]
 [project.optional-dependencies]
 docs = [

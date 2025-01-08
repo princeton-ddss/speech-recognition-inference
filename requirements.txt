@@ -9,3 +9,4 @@ torch
 transformers
 uvicorn
 slowapi
+python-dotenv

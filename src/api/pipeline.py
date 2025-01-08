@@ -34,6 +34,7 @@ def load_pipeline(
     model_id: str,
     revision: Optional[str] = None,
     hf_access_token: Optional[str] = None,
+    batch_size: Optional[int] = 1
 ) -> Pipeline:
     """Load a pipeline.
 
@@ -103,6 +104,7 @@ def load_pipeline(
         feature_extractor=processor.feature_extractor,
         torch_dtype=torch_dtype,
         device=device,
+        batch_size=batch_size
     )
 
 

@@ -4,7 +4,6 @@ from typing import Optional
 from dataclasses import dataclass
 from pydantic import ConfigDict
 
-
 @dataclass
 class SpeechRecognitionInferenceConfig:
     model_config = ConfigDict(protected_namespaces=())
@@ -15,3 +14,4 @@ class SpeechRecognitionInferenceConfig:
     port: int = os.getenv("SRI_PORT", 8080)
     host: str = os.getenv("SRI_HOST", "0.0.0.0")
     auto_reload: bool = False
+    token: str = os.getenv("SRI_TOKEN", None)
