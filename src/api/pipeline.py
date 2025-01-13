@@ -83,8 +83,17 @@ def load_pipeline(
 
     logger.info(f"Loading model {model_id} ({revision})...")
 
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    if torch.cuda.is_available():
+        device = "cuda:0"
+    elif torch.backends.mps.is_available():
+        if not torch.backends.mps.is_built():
+            logger.info("MPS not available because the current PyTorch install was not built with MPS enabled.")
+        else:
+            device="mps"
+    else:
+        device="cpu"
+
+    torch_dtype = torch.float16 if device!="cpu" else torch.float32
 
     model = AutoModelForSpeechSeq2Seq.from_pretrained(
         revision_dir,
