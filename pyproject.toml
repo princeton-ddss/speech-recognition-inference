@@ -35,7 +35,7 @@ dependencies = [
   "numpy<2",
   "pre-commit",
   "pydantic",
-  "torch",
+  "torch>=2.6.0",
   "transformers",
   "uvicorn",
   "slowapi",
