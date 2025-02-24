@@ -5,7 +5,7 @@ import shutil
 import pandas as pd
 
 
-def chunking_file(audio_path, input_chunks_dir, chunk_len_in_secs):
+def chunking_file(audio_path, output_chunks_dir, chunk_len_in_secs):
     """
     Chunk the audio file into chunks of a fixed lengths
     """
@@ -17,7 +17,7 @@ def chunking_file(audio_path, input_chunks_dir, chunk_len_in_secs):
 
     # No need to chunk if audio file has length <= chunk_len_in_secs
     if len(audio) <= chunk_len_in_secs * 1e3:
-        shutil.copy(audio_path, os.path.join(input_chunks_dir, file_name))
+        shutil.copy(audio_path, os.path.join(output_chunks_dir, file_name))
     else:
         # Extract file extension
         file_name_no_ext, ext = os.path.splitext(file_name)
@@ -28,7 +28,8 @@ def chunking_file(audio_path, input_chunks_dir, chunk_len_in_secs):
         # Export each chunk
         for i, chunk in enumerate(chunks):
             chunk.export(
-                os.path.join(input_chunks_dir, file_name_no_ext + "_" + str(i) + ext)
+                os.path.join(output_chunks_dir, file_name_no_ext + "_" + str(
+                    i) + ext)
             )
 
 
@@ -41,23 +42,23 @@ def chunking_dir(input_dir, chunk_len_in_secs=30):
     input_files = [f for f in input_files if not f.startswith(".")]
 
     # Create directory to save chunk files
-    input_chunks_dir = os.path.join(input_dir, "chunks")
-    if not os.path.exists(input_chunks_dir):
-        os.makedirs(input_chunks_dir)
+    output_chunks_dir = os.path.join(input_dir, "chunks")
+    if not os.path.exists(output_chunks_dir):
+        os.makedirs(output_chunks_dir)
     else:
         raise Exception(
-            f"Directory {input_chunks_dir} already exists. Please remove it or choose a"
-            " different name."
+            f"Directory {output_chunks_dir} already exists. Please remove or \
+            rename chunks directory."
         )
 
     # Chunk input files
     for input_file in input_files:
         chunking_file(
             os.path.join(input_dir, input_file),
-            input_chunks_dir,
+            output_chunks_dir,
             chunk_len_in_secs=chunk_len_in_secs,
         )
-    return input_chunks_dir
+    return output_chunks_dir
 
 
 def merge_chunks_results(output_dir):
