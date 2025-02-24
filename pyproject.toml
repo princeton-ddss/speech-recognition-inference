@@ -35,11 +35,11 @@ dependencies = [
   "numpy<2",
   "pre-commit",
   "pydantic",
-  "torch>=2.6.0",
+  "python-dotenv",
+  "slowapi",
+  "torch>=2.6",
   "transformers",
   "uvicorn",
-  "slowapi",
-  "python-dotenv"
 ]
 [project.optional-dependencies]
 docs = [

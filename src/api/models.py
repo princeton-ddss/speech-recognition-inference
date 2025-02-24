@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Union, Literal, Optional
+from typing import Union, Literal
 
 
 class TranscriptionRequest(BaseModel):

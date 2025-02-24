@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status
 from fastapi import Response, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,9 +16,10 @@ from api.__init__ import config
 
 app = FastAPI(title="Speech Recognition Inference")
 
-#Set up global rate limit class based on IP Address
-limiter = Limiter(key_func=get_remote_address,
-    default_limits=["5/10seconds", "10/minute"])
+# Set up global rate limit class based on IP Address
+limiter = Limiter(
+    key_func=get_remote_address, default_limits=["5/10seconds", "10/minute"]
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -31,8 +32,9 @@ app.add_middleware(
 )
 app.add_middleware(SlowAPIMiddleware)
 
+
 @app.get("/", tags=["Speech Recognition Inference"], summary="Welcome message")
-def get_root(request:Request):
+def get_root(request: Request):
     return "Welcome to speech-recognition-inference API!"
 
 
@@ -42,17 +44,18 @@ def get_root(request:Request):
     summary="Transcribe audio",
     tags=["Speech Recognition Inference"],
 )
-def run_transcription(request:Request, data: TranscriptionRequest,
-                      Token: str=Header(None)) -> \
-        TranscriptionResponse:
+def run_transcription(
+    request: Request, data: TranscriptionRequest, Token: str = Header(None)
+) -> TranscriptionResponse:
     """Perform speech-to-text transcription."""
-    #Check if authorization is needed
+    # Check if authorization is needed
     print("Config Token", config.token)
     print("Input Token", Token)
     if config.token:
-        if Token!= config.token:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Invalid token")
+        if Token != config.token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            )
         # else:
         #     #save it to cache so users do not need to pass it again
 
@@ -65,9 +68,9 @@ def run_transcription(request:Request, data: TranscriptionRequest,
     result = transcribe_audio_file(audio_path, pipe, language)
     output = TranscriptionResponse(audio_path=audio_path)
     output.text = result["text"]
-    #Whisper determines the language of the whole audio file by looking at
-    #first 30 seconds
-    output.language=result["chunks"][0]["language"]
+    # Whisper determines the language of the whole audio file by looking at
+    # first 30 seconds
+    output.language = result["chunks"][0]["language"]
     if response_format == "json":
         segments = [None] * len(result["chunks"])
         for idx, seg in enumerate(result["chunks"]):
@@ -80,22 +83,18 @@ def run_transcription(request:Request, data: TranscriptionRequest,
 
     return output
 
+
 @app.get(
     "/health",
     response_description="Health check response",
     summary="Health check",
     tags=["Speech Recognition Inference"],
 )
-@limiter.limit(limit_value="5/10seconds") #Set up local rate limit on health end
+@limiter.limit(limit_value="5/10seconds")  # Set up local rate limit on health end
 # point
-def health_check(request:Request) -> Response:
+def health_check(request: Request) -> Response:
     return Response()
 
 
-
-
-
-
-
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8086, reload = True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8086, reload=True)

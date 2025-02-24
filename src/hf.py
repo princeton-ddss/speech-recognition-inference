@@ -1,6 +1,7 @@
 from typing import Optional
 from huggingface_hub import snapshot_download, login, list_repo_commits
 
+
 def download_hf_models(
     models: list[str],
     hf_access_token: Optional[str],
@@ -21,6 +22,7 @@ def download_hf_models(
 
     for repo_id in models:
         snapshot_download(repo_id=repo_id, cache_dir=cache_dir)
+
 
 def get_latest_commit(repo_id: str, revisions: list[str]) -> str:  # pragma: no cover
     """Return the most recent revision for a model from a list of options."""

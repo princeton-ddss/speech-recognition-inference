@@ -34,6 +34,3 @@ class SpeechRecognitionInferenceParser(ArgumentParser):
             ),
             action="store_true",
         )
-
-
-

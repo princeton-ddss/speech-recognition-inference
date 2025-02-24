@@ -5,12 +5,13 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, Pipeline, pip
 from hf import download_hf_models, get_latest_commit
 from logger import logger
 
+
 def load_pipeline(
     cache_dir: str,
     model_id: str,
     revision: Optional[str] = None,
     hf_access_token: Optional[str] = None,
-    batch_size: Optional[int] = 1
+    batch_size: Optional[int] = 1,
 ) -> Pipeline:
     """Load a pipeline.
 
@@ -63,13 +64,16 @@ def load_pipeline(
         device = "cuda:0"
     elif torch.backends.mps.is_available():
         if not torch.backends.mps.is_built():
-            logger.info("MPS not available because the current PyTorch install was not built with MPS enabled.")
+            logger.info(
+                "MPS not available because the current PyTorch install was not built"
+                " with MPS enabled."
+            )
         else:
-            device="mps"
+            device = "mps"
     else:
-        device="cpu"
+        device = "cpu"
 
-    torch_dtype = torch.float16 if device!="cpu" else torch.float32
+    torch_dtype = torch.float16 if device != "cpu" else torch.float32
 
     model = AutoModelForSpeechSeq2Seq.from_pretrained(
         revision_dir,
@@ -89,11 +93,8 @@ def load_pipeline(
         feature_extractor=processor.feature_extractor,
         torch_dtype=torch_dtype,
         device=device,
-        batch_size=batch_size
+        batch_size=batch_size,
     )
-
-
-
 
 
 def transcribe_audio_file(
