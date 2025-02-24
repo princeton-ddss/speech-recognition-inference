@@ -5,11 +5,7 @@ import shutil
 import pandas as pd
 
 
-def chunking_file(audio_path, output_chunks_dir):
-    """
-    Chunk an audio file into 30 seconds as most ASR models would
-    automatically chunk files into 30 seconds for transcription
-    """
+def chunking_file(audio_path, output_chunks_dir, chunk_len_in_secs=30):
     # Set chunk length as 30 seconds
     chunk_len_in_secs=30
 
@@ -37,11 +33,17 @@ def chunking_file(audio_path, output_chunks_dir):
             )
 
 
-def chunking_dir(input_dir, chunk_len_in_secs=30):
+def chunking_dir(input_dir):
     """
+    Chunk all audio files in the directory into 30 seconds as most ASR models
+    would
+    automatically chunk files into 30 seconds for transcription
     input_dir: input directory of all files
     chunk_len_in_secs: audio length of each chunk in seconds
     """
+    #Set chunk length as 30 seconds
+    chunk_len_in_secs = 30
+
     input_files = os.listdir(input_dir)
     input_files = [f for f in input_files if not f.startswith(".")]
 
