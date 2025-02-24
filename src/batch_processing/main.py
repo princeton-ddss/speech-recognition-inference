@@ -85,7 +85,7 @@ def calculate_batch_size(max_file_size_mb=5, buffer_proportion=0.5, device=None)
     if not device:
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-    if device == "cuda":
+    if device == "cuda:0" or device == "cuda":
         # Get the total memory
         total_memory = torch.cuda.get_device_properties(0).total_memory
         # Get the allocated memory
@@ -108,7 +108,10 @@ def calculate_batch_size(max_file_size_mb=5, buffer_proportion=0.5, device=None)
         free_memory = (total_memory - used_memory) * buffer_proportion
         free_memory_mb = free_memory / 1e6
 
-    batch_size = int(free_memory_mb // max_file_size_mb)
+    if device == "cpu":
+        batch_size = 1
+    else:
+        batch_size = int(free_memory_mb // max_file_size_mb)
     return batch_size
 
 
@@ -119,7 +122,7 @@ def run_batch_processing_queue(
     revision: Optional[str] = None,
     hf_access_token: Optional[str] = None,
     device=None,
-    chunks=True,
+    chunking=True,
     language=None,
     sampling_rate=16000,
     output_dir=None,
@@ -129,7 +132,7 @@ def run_batch_processing_queue(
     equal to 20 minutes for Whisper to run properly under batch processing.
     output_dir: save transcription results in csv file in output path
 
-    chunks: If True, chunk files into input_dir and save chunks in
+    chunking: If True, chunk files into input_dir and save chunks in
     input_chunks_dir.
     If False, input_dir already contains all chunks
     """
@@ -141,7 +144,7 @@ def run_batch_processing_queue(
         hf_access_token=hf_access_token,
     )
 
-    if chunks:
+    if chunking:
         # Chunk files into input_dir and save chunks in input_chunks_dir
         input_dir = chunking_dir(input_dir, chunk_len_in_secs=30)
     else:
@@ -183,10 +186,28 @@ def run_batch_processing_queue(
 
 
 # Run on laptop
-input_dir = "/Users/jf3375/Desktop/asr_api/data/test"
-device = "mps"
-output_dir = "/Users/jf3375/Desktop/asr_api/output/localview_test"
-cache_dir = "/Users/jf3375/Princeton Dropbox/Junying Fang/asr_api/models/Whisper_hf"
+# input_dir = "/Users/jf3375/Desktop/asr_api/data/test"
+# device = "mps"
+# output_dir = "/Users/jf3375/Desktop/asr_api/output/localview_test"
+# cache_dir = "/Users/jf3375/Princeton Dropbox/Junying Fang/asr_api/models/Whisper_hf"
+# model_id = "openai/whisper-tiny"
+#
+# results = run_batch_processing_queue(
+#     cache_dir=cache_dir,
+#     model_id=model_id,
+#     input_dir=input_dir,
+#     device=device,
+#     chunks=True,
+#     language="en",
+#     output_dir=output_dir,
+# )
+# print(results)
+
+# Run on Della
+input_dir="/scratch/gpfs/jf3375/asr_api/data/test"
+device="cuda:0"
+output_dir="/scratch/gpfs/jf3375/asr_api/output"
+cache_dir = "/scratch/gpfs/jf3375/asr_api/models/Whisper_hf"
 model_id = "openai/whisper-tiny"
 
 results = run_batch_processing_queue(
@@ -199,14 +220,3 @@ results = run_batch_processing_queue(
     output_dir=output_dir,
 )
 print(results)
-
-# Run on Della
-# input_dir="/scratch/gpfs/jf3375/asr_api/data/test"
-# device="cuda:0"
-# output_dir="/scratch/gpfs/jf3375/asr_api/output"
-# results =  run_batch_processing_queue(input_dir,
-#                                       chunks=True,
-#                                       language="en",
-#                                    device=device,
-#                                 output_dir=output_dir)
-# print(results)
