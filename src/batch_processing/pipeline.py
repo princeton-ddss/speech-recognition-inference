@@ -2,7 +2,7 @@ import os
 from typing import Optional
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 from batch_processing.logger import logger
-from api.pipeline import download_hf_models, get_latest_commit
+from hf import download_hf_models, get_latest_commit
 def load_model(cache_dir: str,
     model_id: str,
     revision: Optional[str] = None,

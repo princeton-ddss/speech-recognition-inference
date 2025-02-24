@@ -10,6 +10,8 @@ from huggingface_hub import snapshot_download, login, list_repo_commits
 from pydub import AudioSegment, utils
 from collections import deque
 import shutil
+import warnings
+import re
 
 def chunking_file(audio_path, input_chunks_dir, chunk_len_in_secs):
     """
@@ -36,7 +38,7 @@ def chunking_file(audio_path, input_chunks_dir, chunk_len_in_secs):
         for i, chunk in enumerate(chunks):
             chunk.export(os.path.join(input_chunks_dir, file_name_no_ext+'_'+str(i)+ext))
 
-def chunking_dir(input_dir, chunk_len_in_secs=1200):
+def chunking_dir(input_dir, chunk_len_in_secs=30):
     """
     input_dir: input directory of all files
     chunk_len_in_secs: audio length of each chunk in seconds
@@ -63,7 +65,7 @@ def chunking_dir(input_dir, chunk_len_in_secs=1200):
 def batch_processing(
                     model,
                     audio_paths,
-                    device=None,
+                    device,
                     language=None,
                      sampling_rate=16000,
      output_dir=None):
@@ -71,7 +73,7 @@ def batch_processing(
     audio_paths: the list of path to audio chunks files for batch processing
     output_dir: save transcription results in csv file in output path
     """
-
+    audio_paths.sort()
     dataset = Dataset.from_dict({"audio": audio_paths}).\
         cast_column("audio", Audio())
     dataset = dataset.cast_column("audio", Audio(sampling_rate=sampling_rate))
@@ -121,6 +123,8 @@ def batch_processing(
         for idx, result in enumerate(results_batch):
             output_name = os.path.basename(audio_paths[idx]).split('.')[0]
             parse_results_to_csv(result, output_dir, output_name)
+    #Merge results of chunks of one file together
+    merge_chunks_results(output_dir)
     return results_batch
 
 def parse_results_to_csv(result, output_dir, output_name):
@@ -146,14 +150,43 @@ def parse_results_to_csv(result, output_dir, output_name):
         output_name)), index=False)
     return transcribe_df
 
-def calculate_batch_size(max_file_size_mb=25,
-                     buffer_proportion=0.5):
+def merge_chunks_results(output_dir):
+    chunk_names = [c for c in os.listdir(output_dir)if c.endswith('.csv')]
+    chunk_names.sort() #Sort chunks by the timestamps order
+    #Get the Mapping from Parent File to Children File
+    pattern = re.compile(r'_\d+\.csv$')
+    parent_children_mapping = {}
+    for chunk_name in chunk_names:
+        parent_name = pattern.sub('.csv', chunk_name)
+        if parent_name not in parent_children_mapping:
+            parent_children_mapping[parent_name] = [chunk_name]
+        else:
+            parent_children_mapping[parent_name].append(chunk_name)
+
+    for parent in parent_children_mapping.keys():
+        df = pd.DataFrame()
+        starting_time = 0
+        for child in parent_children_mapping[parent]:
+            child_df = pd.read_csv(os.path.join(output_dir, child))
+            child_df['start'] = child_df['start']+starting_time
+            child_df['end'] = child_df['end']+starting_time
+            df = pd.concat([df, child_df])
+            # Delete child file
+            os.remove(os.path.join(output_dir, child))
+            starting_time+=30 #30 seconds chunks
+        df.to_csv(os.path.join(output_dir, parent), index=False)
+    return None
+
+def calculate_batch_size(max_file_size_mb=5,
+                     buffer_proportion=0.5,
+                    device=None):
     """
     Dynamically Calculate Batch Size in Real Time
     """
     # Dynamically calculate batch size based on available resources
-    device = "mps"
-    torch.device(device)
+    if not device:
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
     if device == "cuda":
         # Get the total memory
         total_memory = torch.cuda.get_device_properties(0).total_memory
@@ -196,9 +229,14 @@ def run_batch_processing_queue(input_dir,
     """
     if chunks:
         #Chunk files into input_dir and save chunks in input_chunks_dir
-        input_dir = chunking_dir(input_dir)
+        input_dir = chunking_dir(input_dir, chunk_len_in_secs=30)
+    else:
+        warnings.warn("Check to make sure all audio files in the directory \
+                      are less than 30 seconds. The model would only \
+                      transcribe first 30 seconds for each file")
     # Create a queue for batch processing of chunks of audio files
     chunk_files = os.listdir(input_dir)
+    chunk_files.sort() #Make sure chunks of same files get processed together
     chunk_files_path = [os.path.join(input_dir, chunk_file) for
                         chunk_file in chunk_files if not chunk_file.startswith('.')]
     chunks_queue = deque(chunk_files_path)
@@ -211,8 +249,8 @@ def run_batch_processing_queue(input_dir,
     # Process audio chunk files under batch processing
     audio_paths = []
     while chunks_queue:
-        batch_size = calculate_batch_size(max_file_size_mb=25,
-                     buffer_proportion=0.5)
+        batch_size = calculate_batch_size(max_file_size_mb=5,
+                     buffer_proportion=0.5, device=device)
         for _ in range(batch_size):
             if chunks_queue:
                 audio_paths.append(chunks_queue.pop())
@@ -223,13 +261,25 @@ def run_batch_processing_queue(input_dir,
     return results_batch
 
 
+# Run on laptop
+# input_dir="/Users/jf3375/Desktop/asr_api/data/localview_test/chunks"
+# input_dir="/Users/jf3375/Desktop/asr_api/data/test/chunks"
+# device="mps"
+# output_dir="/Users/jf3375/Desktop/asr_api/output/localview_test"
+# results =  run_batch_processing_queue(input_dir,
+#                                       chunks=False,
+#                                       language="en",
+#                                    device=device,
+#                                 output_dir=output_dir)
+# print(results)
 
-input_dir="/Users/jf3375/Desktop/asr_api/data/localview_test/chunks"
-device="mps"
-output_dir="/Users/jf3375/Desktop/asr_api/output/localview_test"
+# Run on Della
+input_dir="/scratch/gpfs/jf3375/asr_api/data/test"
+device="cuda:0"
+output_dir="/scratch/gpfs/jf3375/asr_api/output"
 results =  run_batch_processing_queue(input_dir,
-                                      chunks=False,
+                                      chunks=True,
                                       language="en",
-                                      device=device,
-                                      output_dir=output_dir)
+                                   device=device,
+                                output_dir=output_dir)
 print(results)

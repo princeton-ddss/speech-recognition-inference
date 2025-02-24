@@ -1,9 +1,9 @@
 import os
 
-from api.config import SpeechRecognitionInferenceConfig
-from api.parser import SpeechRecognitionInferenceParser
+from config import SpeechRecognitionInferenceConfig
+from parser import SpeechRecognitionInferenceParser
 from api.pipeline import load_pipeline
-from api.logger import logger
+from logger import logger
 
 from dotenv import load_dotenv
 
