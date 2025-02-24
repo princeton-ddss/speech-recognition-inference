@@ -5,10 +5,14 @@ import shutil
 import pandas as pd
 
 
-def chunking_file(audio_path, output_chunks_dir, chunk_len_in_secs):
+def chunking_file(audio_path, output_chunks_dir):
     """
-    Chunk the audio file into chunks of a fixed lengths
+    Chunk an audio file into 30 seconds as most ASR models would
+    automatically chunk files into 30 seconds for transcription
     """
+    # Set chunk length as 30 seconds
+    chunk_len_in_secs=30
+
     # Load Audio File
     audio = AudioSegment.from_file(audio_path)
 
