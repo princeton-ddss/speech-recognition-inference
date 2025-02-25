@@ -79,11 +79,12 @@ def batch_processing(
 
 
 def calculate_batch_size(model_size_gb, max_file_size_mb=15,
-                         buffer_proportion=0.6,
+                         remaining_proportion=0.6,
                          device=None,
                          total_memory_gb=None):
     """
     Dynamically Calculate Batch Size in Real Time
+    remaining_proportion: remaining memory of gpu not used for batch processing
     """
     # Dynamically calculate batch size based on available resources
     if not device:
@@ -106,7 +107,7 @@ def calculate_batch_size(model_size_gb, max_file_size_mb=15,
         # Multiply the free memory by 80% to have enough buffer
         free_memory = (
             total_memory - (allocated_memory +cached_memory+model_size_gb*1e9)
-        ) * buffer_proportion
+        ) * (1-remaining_proportion)
         free_memory_mb = free_memory / 1e6
         print("Free memory in GB", free_memory//1e9)
     elif device == "mps":
@@ -117,7 +118,7 @@ def calculate_batch_size(model_size_gb, max_file_size_mb=15,
         # Calculate the free memory
         # Multiply the free memory by 80% to have enough buffer
         free_memory = (total_memory - used_memory-model_size_gb*1e9) * \
-                      buffer_proportion
+                      (1-remaining_proportion)
         free_memory_mb = free_memory / 1e6
 
     if device == "cpu":
@@ -192,7 +193,8 @@ def run_batch_processing_queue(
     nruns = 1
     while chunks_queue:
         batch_size = calculate_batch_size(
-            model_size_gb=model_size_gb, max_file_size_mb=5, buffer_proportion=0.5, \
+            model_size_gb=model_size_gb, max_file_size_mb=5,
+            remaining_proportion=0.6, \
             device=device, total_memory_gb=total_memory_gb
         )
         logger.info("nruns:", nruns)
