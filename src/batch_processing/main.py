@@ -1,4 +1,5 @@
 import os
+import gc
 import torch
 from datasets import Dataset, Audio
 from typing import Optional
@@ -204,6 +205,9 @@ def run_batch_processing_queue(
         results_batch = batch_processing(
             model, processor, audio_paths, device, language, sampling_rate, output_dir
         )
+        # Clear cache and run garbage collection
+        torch.cuda.empty_cache()
+        gc.collect()
     return results_batch
 
 
