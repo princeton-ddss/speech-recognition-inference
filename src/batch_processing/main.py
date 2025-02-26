@@ -86,13 +86,11 @@ def batch_processing(
 def run_batch_processing_queue(
     cache_dir: str,
     model_id: str,
-    model_size_gb: int,
     input_dir: str,
     batch_size: int,
     revision: Optional[str] = None,
     hf_access_token: Optional[str] = None,
     device=None,
-    total_memory_gb: Optional[int] = None,
     chunking=True,
     language=None,
     sampling_rate=16000,
@@ -164,6 +162,7 @@ def run_batch_processing_queue(
         logger.info("nruns:{}".format(nruns))
         logger.info("batch size:{}".format(batch_size))
         nruns+=1
+        #Empty inputs and cache for the next iteration of batch processing
         audio_paths = []
         torch.cuda.empty_cache()
         gc.collect()
