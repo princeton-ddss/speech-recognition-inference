@@ -1,4 +1,5 @@
 import os
+import re
 import gc
 import torch
 from datasets import Dataset, Audio
@@ -8,7 +9,6 @@ from batch_processing.pipeline import load_model
 from batch_processing.chunking import chunking_dir, merge_chunks_results
 from collections import deque
 from logger import logger
-
 
 def batch_processing(
     model,
@@ -23,7 +23,8 @@ def batch_processing(
     audio_paths: the list of path to audio chunks files for batch processing
     output_dir: save transcription results in csv file in output path
     """
-    audio_paths.sort()
+    logger.info("Try to Run Batch Processing")
+    logger.info(audio_paths)
     dataset = Dataset.from_dict({"audio": audio_paths}).cast_column("audio", Audio())
     dataset = dataset.cast_column("audio", Audio(sampling_rate=sampling_rate))
     batch_size = len(dataset)
@@ -66,71 +67,20 @@ def batch_processing(
         device=device,
     )
 
+
     results_batch = [None] * batch_size
     for idx, result_string in enumerate(transcriptions_batch):
+        logger.info(result_string)
         results_batch[idx] = parse_string_into_result(result_string, language)
     if output_dir:
         for idx, result in enumerate(results_batch):
+            logger.info(audio_paths[idx])
+            logger.info(result)
             output_name = os.path.basename(audio_paths[idx]).split(".")[0]
+            logger.info(output_name)
             parse_results_to_csv(result, output_dir, output_name)
-    # Merge results of chunks of one file together
-    merge_chunks_results(output_dir)
+    logger.info("Finish batch processing")
     return results_batch
-
-
-def calculate_batch_size(model_size_gb, max_file_size_mb=15,
-                         remaining_proportion=0.6,
-                         device=None,
-                         total_memory_gb=None):
-    """
-    Dynamically Calculate Batch Size in Real Time
-    remaining_proportion: remaining memory of gpu not used for batch processing
-    """
-    # Dynamically calculate batch size based on available resources
-    if not device:
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
-    if device == "cuda:0" or device == "cuda":
-        # Get the total memory
-        if not total_memory_gb:
-            total_memory = torch.cuda.get_device_properties(0).total_memory
-        else:
-            total_memory = total_memory_gb * 1e9
-        print("Total memory in GB:", total_memory//1e9)
-        # Get the allocated memory
-        allocated_memory = torch.cuda.max_memory_allocated(0)
-        print("Allocated memory in GB:", allocated_memory//1e9)
-        # Get the cached memory
-        cached_memory = torch.cuda.max_memory_reserved(0)
-        print("Cached memory in GB:", cached_memory//1e9)
-        # Calculate the free memory
-        # Multiply the free memory by 80% to have enough buffer
-        free_memory = (
-            total_memory - (allocated_memory +cached_memory+model_size_gb*1e9)
-        ) * (1-remaining_proportion)
-        free_memory_mb = free_memory / 1e6
-        print("Free memory in GB", free_memory//1e9)
-    elif device == "mps":
-        # Get the recommend max memory
-        total_memory = torch.mps.recommended_max_memory()
-        # Get the allocated memory, which includes cached memory
-        used_memory = torch.mps.driver_allocated_memory()
-        # Calculate the free memory
-        # Multiply the free memory by 80% to have enough buffer
-        free_memory = (total_memory - used_memory-model_size_gb*1e9) * \
-                      (1-remaining_proportion)
-        free_memory_mb = free_memory / 1e6
-
-    if device == "cpu":
-        batch_size = 1
-    else:
-        batch_size = int(free_memory_mb // max_file_size_mb)
-    logger.info("batch size", batch_size)
-    if batch_size < 1:
-        raise logger.error("The current gpu memory is not enough to run the \
-        current transcription model. Please either increase gpu memory or \
-                        downsize the model")
-    return batch_size
 
 
 def run_batch_processing_queue(
@@ -138,6 +88,7 @@ def run_batch_processing_queue(
     model_id: str,
     model_size_gb: int,
     input_dir: str,
+    batch_size: int,
     revision: Optional[str] = None,
     hf_access_token: Optional[str] = None,
     device=None,
@@ -166,7 +117,7 @@ def run_batch_processing_queue(
 
     if chunking:
         # Chunk files into input_dir and save chunks in input_chunks_dir
-        input_dir = chunking_dir(input_dir, chunk_len_in_secs=30)
+        input_dir = chunking_dir(input_dir)
     else:
         logger.warning(
             "Check to make sure all audio files in the directory                      "
@@ -174,8 +125,18 @@ def run_batch_processing_queue(
             " transcribe first 30 seconds for each file"
         )
     # Create a queue for batch processing of chunks of audio files
+
+    def extract_parts(filename):
+        match = re.search(r'_(\d+)\.mp3$', filename)
+        if match:
+            name_part = filename[:match.start()]
+            number_part = int(match.group(1))
+            return (name_part, number_part)
+        return (filename, 0)
+
     chunk_files = os.listdir(input_dir)
-    chunk_files.sort()  # Make sure chunks of same files get processed together
+    chunk_files.sort(key=extract_parts)  # Make sure chunks of same files get processed
+    # together
     chunk_files_path = [
         os.path.join(input_dir, chunk_file)
         for chunk_file in chunk_files
@@ -189,32 +150,31 @@ def run_batch_processing_queue(
     model.to(device)
 
     # Process audio chunk files under batch processing
-    audio_paths = []
     nruns = 1
+    audio_paths = []
     while chunks_queue:
-        batch_size = calculate_batch_size(
-            model_size_gb=model_size_gb, max_file_size_mb=5,
-            remaining_proportion=0.6, \
-            device=device, total_memory_gb=total_memory_gb
-        )
-        logger.info("nruns:", nruns)
         for _ in range(batch_size):
             if chunks_queue:
-                audio_paths.append(chunks_queue.pop())
-                nruns+=1
+                audio_paths.append(chunks_queue.popleft())
             else:
                 break
         results_batch = batch_processing(
             model, processor, audio_paths, device, language, sampling_rate, output_dir
         )
-        # Clear cache and run garbage collection
+        logger.info("nruns:{}".format(nruns))
+        logger.info("batch size:{}".format(batch_size))
+        nruns+=1
+        audio_paths = []
         torch.cuda.empty_cache()
         gc.collect()
+
+    # Merge results of chunks of one file together
+    merge_chunks_results(output_dir)
     return results_batch
 
 
 # Run on laptop
-# input_dir = "/Users/jf3375/Desktop/asr_api/data/test"
+# input_dir = "/Users/jf3375/Desktop/asr_api/data/single"
 # device = "mps"
 # output_dir = "/Users/jf3375/Desktop/asr_api/output/localview_test"
 # cache_dir = "/Users/jf3375/Princeton Dropbox/Junying Fang/asr_api/models/Whisper_hf"
@@ -225,28 +185,64 @@ def run_batch_processing_queue(
 #     model_id=model_id,
 #     model_size_gb=10,
 #     input_dir=input_dir,
+#     batch_size=1,
 #     device=device,
-#     chunking=True,
+#     chunking=False,
 #     language="en",
 #     output_dir=output_dir,
 # )
 # print(results)
 
-# Run on Della
-input_dir="/scratch/gpfs/jf3375/evaluation_data/data/AMI/wav/chunks"#This has
-# 11GB
-# files
-device="cuda:0" #gpu memory is 10GB
-output_dir="/scratch/gpfs/jf3375/asr_api/output"
-cache_dir = "/scratch/gpfs/jf3375/asr_api/models/Whisper_hf"
-model_id = "openai/whisper-medium" #model has around 5gb
-total_memory_gb=9.5 #In reality, only has 9.5 gb
+# Test on Della Login Node
+# input_dir="/scratch/gpfs/jf3375/evaluation_data/data/AMI/wav/chunks"#This has
+# # 11GB
+# # files
+# device="cuda:0" #gpu memory is 10GB
+# output_dir="/scratch/gpfs/jf3375/asr_api/output"
+# cache_dir = "/scratch/gpfs/jf3375/asr_api/models/Whisper_hf"
+# model_id = "openai/whisper-tiny" #model has around 5gb
+# total_memory_gb=9.5 #In reality, only has 9.5 gb
 
+# Test on MIG Node
+# input_dir="/scratch/gpfs/jf3375/evaluation_data/data/AMI/wav/chunks"#This has
+# input_dir = "/scratch/gpfs/jf3375/asr_api/data/test/chunks"
+# device="cuda:0" #gpu memory is 10GB
+# output_dir="/scratch/gpfs/jf3375/asr_api/output/test"
+# cache_dir = "/scratch/gpfs/jf3375/asr_api/models/Whisper_hf"
+# model_id = "openai/whisper-tiny" #model has around 1gb
+# total_memory_gb=9.5 #In reality, only has 9.5 gb
+#
+# #batch size is calcualted via empical testing
+# results = run_batch_processing_queue(
+#     cache_dir=cache_dir,
+#     model_id=model_id,
+#     model_size_gb=0,
+#     input_dir=input_dir,
+#     batch_size = 10,
+#     device=device,
+#     chunking=False,
+#     language="en",
+#     output_dir=output_dir,
+#     total_memory_gb=total_memory_gb
+# )
+# print(results)
+
+#Test on gpu80 node
+input_dir="/scratch/gpfs/jf3375/evaluation_data/data/AMI/wav/chunks"#This has
+input_dir = "/scratch/gpfs/jf3375/asr_api/data/test/chunks"
+device="cuda:0" #gpu memory is 10GB
+output_dir="/scratch/gpfs/jf3375/asr_api/output/test"
+cache_dir = "/scratch/gpfs/jf3375/asr_api/models/Whisper_hf"
+model_id = "openai/whisper-large-v3" #model has around 1gb
+total_memory_gb=80 #In reality, only has 9.5 gb
+
+#batch size is calcualted via empical testing
 results = run_batch_processing_queue(
     cache_dir=cache_dir,
     model_id=model_id,
     model_size_gb=0,
     input_dir=input_dir,
+    batch_size = 30,
     device=device,
     chunking=False,
     language="en",
