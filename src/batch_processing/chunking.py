@@ -82,14 +82,20 @@ def merge_chunks_results(output_dir):
 
     for parent in parent_children_mapping.keys():
         df = pd.DataFrame()
-        starting_time = 0
         for child in parent_children_mapping[parent]:
+            match = re.search(r'_(\d+)\.csv$', child)
+            if match:
+                chunk_order = int(match.group(1))
+            else:
+                chunk_order=0
+            starting_time = chunk_order*30
             child_df = pd.read_csv(os.path.join(output_dir, child))
             child_df["start"] = child_df["start"] + starting_time
             child_df["end"] = child_df["end"] + starting_time
             df = pd.concat([df, child_df])
             # Delete child file
             os.remove(os.path.join(output_dir, child))
-            starting_time += 30  # 30 seconds chunks
+        df = df.sort_values(by="start").drop_duplicates()
         df.to_csv(os.path.join(output_dir, parent), index=False)
     return None
+
