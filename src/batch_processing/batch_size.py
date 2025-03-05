@@ -1,6 +1,6 @@
 import torch
 from typing import Optional
-def calculate_batch_size(model_size_gb:int, max_file_size_mb=15,
+def calculate_batch_size(max_file_matrix_size_mb=20,
                          remaining_proportion=0.6,
                          device=None,
                          total_memory_gb: Optional[int] = None
@@ -26,8 +26,6 @@ def calculate_batch_size(model_size_gb:int, max_file_size_mb=15,
     # Get the allocated memory
     allocated_memory = torch.cuda.memory_allocated(0) if "cuda" in device \
         else torch.mps.driver_allocated_memory()
-    #Consider model size
-    allocated_memory = max(allocated_memory, model_size_gb*1e9)
     print("Allocated memory in GB:", allocated_memory // 1e9)
 
     # Get the cached memory
@@ -41,7 +39,9 @@ def calculate_batch_size(model_size_gb:int, max_file_size_mb=15,
     free_memory_mb = free_memory / 1e6
 
     #Calculate the batch size
-    batch_size = int(free_memory_mb // max_file_size_mb)
+    print("Free Memory in MB:", free_memory_mb)
+
+    batch_size = int(free_memory_mb // max_file_matrix_size_mb)
     print("estimated batch size", batch_size)
     if batch_size < 1:
         raise Exception("The current gpu memory is not enough to run the \
