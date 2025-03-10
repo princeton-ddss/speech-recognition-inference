@@ -71,14 +71,10 @@ def batch_processing(
 
     results_batch = [None] * batch_size
     for idx, result_string in enumerate(transcriptions_batch):
-        logger.info(result_string)
         results_batch[idx] = parse_string_into_result(result_string, language)
     if output_dir:
         for idx, result in enumerate(results_batch):
-            logger.info(audio_paths[idx])
-            logger.info(result)
             output_name = os.path.basename(audio_paths[idx]).split(".")[0]
-            logger.info(output_name)
             parse_results_to_csv(result, output_dir, output_name)
     logger.info("Finish batch processing")
     return results_batch
@@ -165,7 +161,7 @@ def run_batch_processing_queue(
     chunk_files.sort(key=extract_parts)  # Make sure chunks of same files get processed
     # together
     chunk_files_path = [
-        os.path.join(input_dir, chunk_file)
+        os.path.join(input_chunks_dir, chunk_file)
         for chunk_file in chunk_files
         if not chunk_file.startswith(".")
     ]
@@ -211,85 +207,7 @@ def run_batch_processing_queue(
 
     # Merge results of chunks of one file together
     merge_chunks_results(output_dir)
-    return results_batch
+    logger.info("Batch Processing Done")
+    return
 
-
-# Run on laptop
-# input_dir = "/Users/jf3375/Desktop/asr_api/data/single"
-# device = "mps"
-# output_dir = "/Users/jf3375/Desktop/asr_api/output/localview_test"
-# cache_dir = "/Users/jf3375/Princeton Dropbox/Junying Fang/asr_api/models/Whisper_hf"
-# model_id = "openai/whisper-tiny"
-#
-# results = run_batch_processing_queue(
-#     cache_dir=cache_dir,
-#     model_id=model_id,
-#     input_dir=input_dir,
-#     batch_size=1,
-#     device=device,
-#     chunking=False,
-#     language="en",
-#     output_dir=output_dir,
-# )
-# print(results)
-
-# Test on Della Login Node
-# input_dir="/scratch/gpfs/jf3375/evaluation_data/data/AMI/wav/chunks"#This has
-# # 11GB
-# # files
-# device="cuda:0" #gpu memory is 10GB
-# output_dir="/scratch/gpfs/jf3375/asr_api/output"
-# cache_dir = "/scratch/gpfs/jf3375/asr_api/models/Whisper_hf"
-# model_id = "openai/whisper-tiny" #model has around 5gb
-# total_memory_gb=9.5 #In reality, only has 9.5 gb
-
-# Test on MIG Node
-input_dir="/scratch/gpfs/jf3375/evaluation_data/data/AMI/wav/chunks"#This has
-input_dir = "/scratch/gpfs/jf3375/asr_api/data/test"
-input_chunks_dir = "/scratch/gpfs/jf3375/asr_api/data/test/chunks"
-device="cuda:0" #gpu memory is 10GB
-output_dir="/scratch/gpfs/jf3375/asr_api/output/test"
-cache_dir = "/scratch/gpfs/jf3375/asr_api/models/Whisper_hf"
-model_id = "openai/whisper-medium" #model has around 1gb
-total_memory_gb=9.5 #In reality, only has 9.5 gb
-batch_size = 10
-
-#batch size is calcualted via empical testing
-results = run_batch_processing_queue(
-    cache_dir=cache_dir,
-    model_id=model_id,
-    input_dir=input_dir,
-    input_chunks_dir=input_chunks_dir,
-    device=device,
-    chunking=False,
-    language="en",
-    output_dir=output_dir,
-    total_memory_gb=total_memory_gb
-)
-print(results)
-
-
-
-#Test on gpu80 node
-# input_dir="/scratch/gpfs/jf3375/evaluation_data/data/AMI/wav/chunks"#This has
-# input_dir = "/scratch/gpfs/jf3375/asr_api/data/test/chunks"
-# device="cuda:0" #gpu memory is 10GB
-# output_dir="/scratch/gpfs/jf3375/asr_api/output/test"
-# cache_dir = "/scratch/gpfs/jf3375/asr_api/models/Whisper_hf"
-# model_id = "openai/whisper-large-v3" #model has around 1gb
-# total_memory_gb=80
-#
-# #batch size is calcualted via empical testing
-# results = run_batch_processing_queue(
-#     cache_dir=cache_dir,
-#     model_id=model_id,
-#     input_dir=input_dir,
-#     batch_size = 30,
-#     device=device,
-#     chunking=False,
-#     language="en",
-#     output_dir=output_dir,
-#     total_memory_gb=total_memory_gb
-# )
-# print(results)
 
