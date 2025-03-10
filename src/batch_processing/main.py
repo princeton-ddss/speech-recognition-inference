@@ -88,6 +88,7 @@ def run_batch_processing_queue(
     cache_dir: str,
     model_id: str,
     input_dir: str,
+    input_chunks_dir: Optional[str]=None,
     batch_size: Optional[int]=None,
     total_memory_gb: Optional[int]=None,
     max_file_matrix_size_mb: Optional[int] = 100,
@@ -114,6 +115,34 @@ def run_batch_processing_queue(
     directory. If False, the model would only be run on files in input
     directory which do not have outputs yet.
     """
+    # Consider conditions where input_chunks_dir does not exist
+    if not input_chunks_dir:
+        if chunking:
+            # Chunk files into input_dir and save chunks in input_chunks_dir
+            input_chunks_dir = chunking_dir(input_dir)
+        else:
+            raise Exception("Please either set chunking as true or pass a"
+                            "directory with chunk files")
+    else:
+            logger.warning(
+                "Check to make sure all audio files in the chunking "
+                "directory"
+                " are less than 30 seconds. The model would only"
+                " transcribe first 30 seconds for each file"
+            )
+    chunk_files = os.listdir(input_chunks_dir)
+
+    # If rerun is false, only run models on audio files which do not have
+    # existing outputs
+    if not rerun:
+        chunk_files_results = [output.split('.')[0] for output in os.listdir(output_dir)]
+        if set(chunk_files_results)==set([input.split('.')[0] for input in os.listdir(input_dir) if input != "chunks"]):
+            logger.info("All the input files already get processed")
+            return
+        else:
+            chunk_files = [file for file in chunk_files if file.split(
+                '.')[0] not in chunk_files_results]
+
     # Load Model
     model, processor = load_model(
         cache_dir=cache_dir,
@@ -122,23 +151,6 @@ def run_batch_processing_queue(
         hf_access_token=hf_access_token,
     )
 
-    if chunking:
-        # Chunk files into input_dir and save chunks in input_chunks_dir
-        input_dir = chunking_dir(input_dir)
-    else:
-        logger.warning(
-            "Check to make sure all audio files in the directory                      "
-            " are less than 30 seconds. The model would only                      "
-            " transcribe first 30 seconds for each file"
-        )
-
-    # If rerun is false, only run models on audio files which do not have
-    # existing outputs
-    if not rerun:
-        chunk_files_results = [file.split('.')[0] for file in os.listdir(
-            output_dir)]
-    chunk_files = [file for file in os.listdir(input_dir) if file.split(
-        '.')[0] not in chunk_files_results]
 
     # Create a queue for batch processing of chunks of audio files
 
@@ -233,7 +245,8 @@ def run_batch_processing_queue(
 
 # Test on MIG Node
 input_dir="/scratch/gpfs/jf3375/evaluation_data/data/AMI/wav/chunks"#This has
-input_dir = "/scratch/gpfs/jf3375/asr_api/data/test/chunks"
+input_dir = "/scratch/gpfs/jf3375/asr_api/data/test"
+input_chunks_dir = "/scratch/gpfs/jf3375/asr_api/data/test/chunks"
 device="cuda:0" #gpu memory is 10GB
 output_dir="/scratch/gpfs/jf3375/asr_api/output/test"
 cache_dir = "/scratch/gpfs/jf3375/asr_api/models/Whisper_hf"
@@ -246,6 +259,7 @@ results = run_batch_processing_queue(
     cache_dir=cache_dir,
     model_id=model_id,
     input_dir=input_dir,
+    input_chunks_dir=input_chunks_dir,
     device=device,
     chunking=False,
     language="en",
@@ -278,3 +292,4 @@ print(results)
 #     total_memory_gb=total_memory_gb
 # )
 # print(results)
+
