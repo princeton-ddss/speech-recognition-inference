@@ -48,4 +48,4 @@ docs = [
 [project.urls]
 "Homepage" = "https://github.com/princeton-ddss/speech-recognition-inference"
 [project.scripts]
-speech_recognition_launcher = "api.cli:launch"
+speech_recognition_launcher = "cli:launch"
