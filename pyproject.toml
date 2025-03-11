@@ -27,6 +27,7 @@ classifiers = [
 ]
 dependencies = [
   "accelerate",
+  "datasets>=3.3.2",
   "fastapi",
   "huggingface_hub",
   "nox",
