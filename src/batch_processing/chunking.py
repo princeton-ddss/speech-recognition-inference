@@ -7,7 +7,7 @@ import pandas as pd
 
 def chunking_file(audio_path, output_chunks_dir, chunk_len_in_secs=30):
     # Set chunk length as 30 seconds
-    chunk_len_in_secs=30
+    chunk_len_in_secs = 30
 
     # Load Audio File
     audio = AudioSegment.from_file(audio_path)
@@ -28,8 +28,7 @@ def chunking_file(audio_path, output_chunks_dir, chunk_len_in_secs=30):
         # Export each chunk
         for i, chunk in enumerate(chunks):
             chunk.export(
-                os.path.join(output_chunks_dir, file_name_no_ext + "_" + str(
-                    i) + ext)
+                os.path.join(output_chunks_dir, file_name_no_ext + "_" + str(i) + ext)
             )
 
 
@@ -41,7 +40,7 @@ def chunking_dir(input_dir):
     input_dir: input directory of all files
     chunk_len_in_secs: audio length of each chunk in seconds
     """
-    #Set chunk length as 30 seconds
+    # Set chunk length as 30 seconds
     chunk_len_in_secs = 30
 
     input_files = os.listdir(input_dir)
@@ -53,8 +52,8 @@ def chunking_dir(input_dir):
         os.makedirs(output_chunks_dir)
     else:
         raise Exception(
-            f"Directory {output_chunks_dir} already exists. Please remove or \
-            rename chunks directory."
+            f"Directory {output_chunks_dir} already exists. Please remove or           "
+            "  rename chunks directory."
         )
 
     # Chunk input files
@@ -83,12 +82,12 @@ def merge_chunks_results(output_dir):
     for parent in parent_children_mapping.keys():
         df = pd.DataFrame()
         for child in parent_children_mapping[parent]:
-            match = re.search(r'_(\d+)\.csv$', child)
+            match = re.search(r"_(\d+)\.csv$", child)
             if match:
                 chunk_order = int(match.group(1))
             else:
-                chunk_order=0
-            starting_time = chunk_order*30
+                chunk_order = 0
+            starting_time = chunk_order * 30
             child_df = pd.read_csv(os.path.join(output_dir, child))
             child_df["start"] = child_df["start"] + starting_time
             child_df["end"] = child_df["end"] + starting_time
@@ -98,4 +97,3 @@ def merge_chunks_results(output_dir):
         df = df.sort_values(by="start").drop_duplicates()
         df.to_csv(os.path.join(output_dir, parent), index=False)
     return None
-

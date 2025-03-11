@@ -11,6 +11,7 @@ from batch_processing.batch_size import calculate_batch_size
 from collections import deque
 from logger import logger
 
+
 def batch_processing(
     model,
     processor,
@@ -68,7 +69,6 @@ def batch_processing(
         device=device,
     )
 
-
     results_batch = [None] * batch_size
     for idx, result_string in enumerate(transcriptions_batch):
         results_batch[idx] = parse_string_into_result(result_string, language)
@@ -84,19 +84,19 @@ def run_batch_processing_queue(
     cache_dir: str,
     model_id: str,
     input_dir: str,
-    input_chunks_dir: Optional[str]=None,
-    batch_size: Optional[int]=None,
-    total_memory_gb: Optional[int]=None,
+    input_chunks_dir: Optional[str] = None,
+    batch_size: Optional[int] = None,
+    total_memory_gb: Optional[int] = None,
     max_file_matrix_size_mb: Optional[int] = 100,
     remaining_memory_proportion: Optional[int] = 0.6,
     revision: Optional[str] = None,
     hf_access_token: Optional[str] = None,
-    device: Optional[str]=None,
+    device: Optional[str] = None,
     chunking=True,
     language=None,
     sampling_rate=16000,
     output_dir=None,
-    rerun = False
+    rerun=False,
 ):
     """
     This function assumes that the length of each audio file is less than or
@@ -117,27 +117,39 @@ def run_batch_processing_queue(
             # Chunk files into input_dir and save chunks in input_chunks_dir
             input_chunks_dir = chunking_dir(input_dir)
         else:
-            raise Exception("Please either set chunking as true or pass a"
-                            "directory with chunk files")
-    else:
-            logger.warning(
-                "Check to make sure all audio files in the chunking "
-                "directory"
-                " are less than 30 seconds. The model would only"
-                " transcribe first 30 seconds for each file"
+            raise Exception(
+                "Please either set chunking as true or pass adirectory with chunk files"
             )
+    else:
+        logger.warning(
+            "Check to make sure all audio files in the chunking "
+            "directory"
+            " are less than 30 seconds. The model would only"
+            " transcribe first 30 seconds for each file"
+        )
     chunk_files = os.listdir(input_chunks_dir)
 
     # If rerun is false, only run models on audio files which do not have
     # existing outputs
     if not rerun:
-        chunk_files_results = [output.split('.')[0] for output in os.listdir(output_dir)]
-        if set(chunk_files_results)==set([input.split('.')[0] for input in os.listdir(input_dir) if input != "chunks"]):
+        chunk_files_results = [
+            output.split(".")[0] for output in os.listdir(output_dir)
+        ]
+        if set(chunk_files_results) == set(
+            [
+                input.split(".")[0]
+                for input in os.listdir(input_dir)
+                if input != "chunks"
+            ]
+        ):
             logger.info("All the input files already get processed")
             return
         else:
-            chunk_files = [file for file in chunk_files if file.split(
-                '.')[0] not in chunk_files_results]
+            chunk_files = [
+                file
+                for file in chunk_files
+                if file.split(".")[0] not in chunk_files_results
+            ]
 
     # Load Model
     model, processor = load_model(
@@ -147,13 +159,12 @@ def run_batch_processing_queue(
         hf_access_token=hf_access_token,
     )
 
-
     # Create a queue for batch processing of chunks of audio files
 
     def extract_parts(filename):
-        match = re.search(r'_(\d+)\.mp3$', filename)
+        match = re.search(r"_(\d+)\.mp3$", filename)
         if match:
-            name_part = filename[:match.start()]
+            name_part = filename[: match.start()]
             number_part = int(match.group(1))
             return (name_part, number_part)
         return (filename, 0)
@@ -182,7 +193,7 @@ def run_batch_processing_queue(
             max_file_matrix_size_mb=max_file_matrix_size_mb,
             remaining_proportion=remaining_memory_proportion,
             total_memory_gb=total_memory_gb,
-            device=device
+            device=device,
         )
 
     # Process audio chunk files under batch processing
@@ -194,13 +205,13 @@ def run_batch_processing_queue(
                 audio_paths.append(chunks_queue.popleft())
             else:
                 break
-        results_batch = batch_processing(
+        _ = batch_processing(
             model, processor, audio_paths, device, language, sampling_rate, output_dir
         )
         logger.info("nruns:{}".format(nruns))
         logger.info("batch size:{}".format(batch_size))
-        nruns+=1
-        #Empty inputs and cache for the next iteration of batch processing
+        nruns += 1
+        # Empty inputs and cache for the next iteration of batch processing
         audio_paths = []
         torch.cuda.empty_cache()
         gc.collect()
@@ -209,5 +220,3 @@ def run_batch_processing_queue(
     merge_chunks_results(output_dir)
     logger.info("Batch Processing Done")
     return
-
-

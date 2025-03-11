@@ -24,8 +24,7 @@ def load_model(
 
     if revision is not None:
         if not os.path.isdir(os.path.join(snapshot_dir, revision)):
-            raise FileNotFoundError(f"The model revision {revision} does "
-                                    f"not exist.")
+            raise FileNotFoundError(f"The model revision {revision} does not exist.")
     else:
         revisions = list(
             filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir))

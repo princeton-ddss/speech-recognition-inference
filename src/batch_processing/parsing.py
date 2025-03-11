@@ -15,7 +15,7 @@ def parse_string_into_result(input_string, language):
     if not matches:
         # if matches are empty, no segments
         # Remove random timestamps
-        result["text"] = re.sub(r'<\|.*?\|> |!\s', '', input_string).strip()
+        result["text"] = re.sub(r"<\|.*?\|> |!\s", "", input_string).strip()
         result["chunks"] = [{"timestamp": (0, 30), "text": input_string}]
     else:
         result["text"] = ""
@@ -69,7 +69,13 @@ input_string = (
     " told your son that you love him.<|16.00|>"
 )
 
-input_string=" ! Good morning. I now call this meeting of the Abilene City Council order is 830 a.m. I'm going to introduce here in a moment but I'm going to ask Councilman McAllister if he would lead us in our invocation. Let's have a word. Dearly Father, we are very blessed to be here today. We thank you for this opportunity and it is as we know an opportunity to serve you in so many different ways. We pray this morning that we"
+input_string = (
+    " ! Good morning. I now call this meeting of the Abilene City Council order is 830"
+    " a.m. I'm going to introduce here in a moment but I'm going to ask Councilman"
+    " McAllister if he would lead us in our invocation. Let's have a word. Dearly"
+    " Father, we are very blessed to be here today. We thank you for this opportunity"
+    " and it is as we know an opportunity to serve you in so many different ways. We"
+    " pray this morning that we"
+)
 result = parse_string_into_result(input_string, "en")
 print(result)
-
