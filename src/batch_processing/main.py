@@ -99,12 +99,12 @@ def run_batch_processing_queue(
     input_chunks_dir: Optional[str] = None,
     batch_size: Optional[int] = None,
     total_memory_gb: Optional[int] = None,
-    max_file_matrix_size_mb: Optional[int] = 100,
     remaining_memory_proportion: Optional[int] = 0.6,
+    max_file_matrix_size_mb: Optional[int] = 100,
     revision: Optional[str] = None,
     hf_access_token: Optional[str] = None,
     device: Optional[str] = None,
-    chunking=True,
+    chunking: Optional[bool]=True,
     language=None,
     sampling_rate=16000,
     rerun=False,
@@ -116,7 +116,7 @@ def run_batch_processing_queue(
 
     Args:
         cache_dir (str): Directory to cache the model.
-        model_id (str): Identifier for the pre-trained model.
+        model_id (str): Unique Identifier for the pre-trained model.
         input_dir (str): Directory containing input audio files.
         output_dir (str, optional): Directory to save transcription results in CSV files.
         input_chunks_dir (str, optional): Directory containing chunked audio files. Defaults to None.
@@ -124,12 +124,13 @@ def run_batch_processing_queue(
         batch. Defaults to None.
         total_memory_gb (int, optional): Total GPU memory available in GB.
         Defaults to None.
-        max_file_matrix_size_mb (int, optional): Maximum file matrix size in MB. Defaults to 100.
         remaining_memory_proportion (float, optional): Proportion of
         remaining memory not used for batch processing. Defaults to 0.6.
+        max_file_matrix_size_mb (int, optional): Maximum file matrix size in MB. Defaults to 100.
         revision (str, optional): Model revision identifier. Defaults to None.
         hf_access_token (str, optional): Hugging Face access token. Defaults to None.
-        device (str, optional): Device to run the processing on (e.g., 'cpu' or 'cuda'). Defaults to None.
+        device (str, optional): Device to run the batch processing on (e.g.,
+        'cpu' or 'cuda'). Defaults to None.
         chunking (bool, optional): Whether to chunk files into input_dir and save chunks in input_chunks_dir. Defaults to True.
         language (str, optional): Language code for transcription. Defaults to None.
         sampling_rate (int, optional): Sampling rate for audio processing. Defaults to 16000.

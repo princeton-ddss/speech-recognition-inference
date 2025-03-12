@@ -36,6 +36,10 @@ def calculate_batch_size(
         )
     else:
         total_memory = total_memory_gb * 1e9
+        if total_memory > torch.cuda.get_device_properties(0).total_memory:
+            raise Exception(
+                f"The provided total_memory_gb ({total_memory_gb}) is larger than the available memory on the GPU"
+            )
     print("Total memory in GB:", total_memory // 1e9)
 
     # Get the allocated memory
