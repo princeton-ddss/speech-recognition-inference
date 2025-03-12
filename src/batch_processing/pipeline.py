@@ -11,6 +11,19 @@ def load_model(
     revision: Optional[str] = None,
     hf_access_token: Optional[str] = None,
 ):
+    """
+    Load a pre-trained Whisper model and its processor from the specified cache directory.
+
+    Args:
+        cache_dir (str): Directory to cache the model.
+        model_id (str): Identifier for the pre-trained model.
+        revision (str, optional): Model revision identifier. If not provided, the latest revision is used. Defaults to None.
+        hf_access_token (str, optional): Hugging Face access token. Defaults to None.
+
+    Returns:
+        tuple: A tuple containing the loaded model and processor.
+    """
+
     # Load Model
     model_path = os.path.join(
         os.path.join(cache_dir, "models--" + model_id.replace("/", "--"))
@@ -24,8 +37,7 @@ def load_model(
 
     if revision is not None:
         if not os.path.isdir(os.path.join(snapshot_dir, revision)):
-            raise FileNotFoundError(f"The model revision {revision} does "
-                                    f"not exist.")
+            raise FileNotFoundError(f"The model revision {revision} does not exist.")
     else:
         revisions = list(
             filter(lambda x: not x.startswith("."), os.listdir(snapshot_dir))

@@ -6,8 +6,19 @@ import pandas as pd
 
 
 def chunking_file(audio_path, output_chunks_dir, chunk_len_in_secs=30):
+    """
+    Chunk an audio file into smaller segments of a specified length.
+
+    Args:
+        audio_path (str): The path to the input audio files.
+        output_chunks_dir (str): The directory to save the chunked audio files.
+        chunk_len_in_secs (int, optional): The length of each chunk in seconds. Defaults to 30.
+
+    Returns:
+        None
+    """
     # Set chunk length as 30 seconds
-    chunk_len_in_secs=30
+    chunk_len_in_secs = 30
 
     # Load Audio File
     audio = AudioSegment.from_file(audio_path)
@@ -28,20 +39,25 @@ def chunking_file(audio_path, output_chunks_dir, chunk_len_in_secs=30):
         # Export each chunk
         for i, chunk in enumerate(chunks):
             chunk.export(
-                os.path.join(output_chunks_dir, file_name_no_ext + "_" + str(
-                    i) + ext)
+                os.path.join(output_chunks_dir, file_name_no_ext + "_" + str(i) + ext)
             )
 
 
 def chunking_dir(input_dir):
     """
-    Chunk all audio files in the directory into 30 seconds as most ASR models
-    would
-    automatically chunk files into 30 seconds for transcription
-    input_dir: input directory of all files
-    chunk_len_in_secs: audio length of each chunk in seconds
+    Chunk all audio files in the input directory into smaller segments of 30
+    seconds.
+
+    Args:
+        input_dir (str): The directory containing the input audio files.
+
+    Returns:
+        str: The directory where the chunked audio files are saved.
+
+    Raises:
+        Exception: If the output chunks directory already exists.
     """
-    #Set chunk length as 30 seconds
+    # Set chunk length as 30 seconds
     chunk_len_in_secs = 30
 
     input_files = os.listdir(input_dir)
@@ -53,8 +69,8 @@ def chunking_dir(input_dir):
         os.makedirs(output_chunks_dir)
     else:
         raise Exception(
-            f"Directory {output_chunks_dir} already exists. Please remove or \
-            rename chunks directory."
+            f"Directory {output_chunks_dir} already exists. Please remove or           "
+            "  rename chunks directory."
         )
 
     # Chunk input files
@@ -68,6 +84,15 @@ def chunking_dir(input_dir):
 
 
 def merge_chunks_results(output_dir):
+    """
+    Merge the results of chunked audio files into a single CSV file for each parent audio file.
+
+    Args:
+        output_dir (str): The directory containing the chunked audio results in CSV files.
+
+    Returns:
+        None
+    """
     chunk_names = [c for c in os.listdir(output_dir) if c.endswith(".csv")]
     chunk_names.sort()  # Sort chunks by the timestamps order
     # Get the Mapping from Parent File to Children File
@@ -83,12 +108,12 @@ def merge_chunks_results(output_dir):
     for parent in parent_children_mapping.keys():
         df = pd.DataFrame()
         for child in parent_children_mapping[parent]:
-            match = re.search(r'_(\d+)\.csv$', child)
+            match = re.search(r"_(\d+)\.csv$", child)
             if match:
                 chunk_order = int(match.group(1))
             else:
-                chunk_order=0
-            starting_time = chunk_order*30
+                chunk_order = 0
+            starting_time = chunk_order * 30
             child_df = pd.read_csv(os.path.join(output_dir, child))
             child_df["start"] = child_df["start"] + starting_time
             child_df["end"] = child_df["end"] + starting_time
@@ -98,4 +123,3 @@ def merge_chunks_results(output_dir):
         df = df.sort_values(by="start").drop_duplicates()
         df.to_csv(os.path.join(output_dir, parent), index=False)
     return None
-

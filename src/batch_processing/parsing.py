@@ -4,6 +4,21 @@ import pandas as pd
 
 
 def parse_string_into_result(input_string, language):
+    """
+    Parses the input string into a dictionary containing the transcribed text and the segments.
+
+    Args:
+        input_string (str): The input string containing the transcribed text.
+        language (str): The language of the transcribed text.
+
+    Returns:
+        dict: A dictionary containing the transcribed text, language, and segments.
+    """
+    pattern = re.compile(r"<\|(\d+\.\d+)\|>([^<]+)<\|(\d+\.\d+)\|>")
+
+    # Convert segments to dictionary
+    result = {}
+    result["language"] = language
     pattern = re.compile(r"<\|(\d+\.\d+)\|>([^<]+)<\|(\d+\.\d+)\|>")
 
     # Find segments in the text
@@ -15,7 +30,7 @@ def parse_string_into_result(input_string, language):
     if not matches:
         # if matches are empty, no segments
         # Remove random timestamps
-        result["text"] = re.sub(r'<\|.*?\|> |!\s', '', input_string).strip()
+        result["text"] = re.sub(r"<\|.*?\|> |!\s", "", input_string).strip()
         result["chunks"] = [{"timestamp": (0, 30), "text": input_string}]
     else:
         result["text"] = ""
@@ -30,6 +45,17 @@ def parse_string_into_result(input_string, language):
 
 
 def parse_results_to_csv(result, output_dir, output_name):
+    """
+    Saves the transcription results into a CSV file.
+
+    Args:
+        result (dict): A dictionary containing the transcribed text and segments.
+        output_dir (str): The directory to save the CSV file.
+        output_name (str): The name of the output CSV file.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the transcription results.
+    """
     # Translate text into Whisper
     segment_len = len(result["chunks"])
     transcribe_df = pd.DataFrame()
@@ -61,15 +87,14 @@ def parse_results_to_csv(result, output_dir, output_name):
     return transcribe_df
 
 
-input_string = (
-    "<|0.00|> an ofd the 16 years that we've been married.<|2.00|><|2.00|> Have you one"
-    " time toldf that you liked him?<|5.00|><|5.00|> Not in those exact"
-    " words.<|7.00|><|7.00|> No.<|8.00|><|8.00|> No.<|9.00|><|9.00|> Not in any words,"
-    " Dad.<|10.00|><|10.00|> He said that makes me feel.<|12.00|><|13.00|> You've never"
-    " told your son that you love him.<|16.00|>"
-)
-
-input_string=" ! Good morning. I now call this meeting of the Abilene City Council order is 830 a.m. I'm going to introduce here in a moment but I'm going to ask Councilman McAllister if he would lead us in our invocation. Let's have a word. Dearly Father, we are very blessed to be here today. We thank you for this opportunity and it is as we know an opportunity to serve you in so many different ways. We pray this morning that we"
-result = parse_string_into_result(input_string, "en")
-print(result)
-
+# input_string = (
+#     "<|0.00|> an ofd the 16 years that we've been married.<|2.00|><|2.00|> Have you one"
+#     " time toldf that you liked him?<|5.00|><|5.00|> Not in those exact"
+#     " words.<|7.00|><|7.00|> No.<|8.00|><|8.00|> No.<|9.00|><|9.00|> Not in any words,"
+#     " Dad.<|10.00|><|10.00|> He said that makes me feel.<|12.00|><|13.00|> You've never"
+#     " told your son that you love him.<|16.00|>"
+# )
+#
+# input_string=" ! Good morning. I now call this meeting of the Abilene City Council order is 830 a.m. I'm going to introduce here in a moment but I'm going to ask Councilman McAllister if he would lead us in our invocation. Let's have a word. Dearly Father, we are very blessed to be here today. We thank you for this opportunity and it is as we know an opportunity to serve you in so many different ways. We pray this morning that we"
+# result = parse_string_into_result(input_string, "en")
+# print(result)
