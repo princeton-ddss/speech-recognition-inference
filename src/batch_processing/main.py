@@ -97,6 +97,7 @@ def run_batch_processing_queue(
     input_dir: str,
     output_dir: str,
     input_chunks_dir: Optional[str] = None,
+    chunking: Optional[bool] = True,
     batch_size: Optional[int] = None,
     total_memory_gb: Optional[int] = None,
     remaining_memory_proportion: Optional[int] = 0.6,
@@ -104,7 +105,6 @@ def run_batch_processing_queue(
     revision: Optional[str] = None,
     hf_access_token: Optional[str] = None,
     device: Optional[str] = None,
-    chunking: Optional[bool]=True,
     language: Optional[str]=None,
     sampling_rate: Optional[int]=16000,
     rerun: Optional[bool]=False,
@@ -120,6 +120,7 @@ def run_batch_processing_queue(
         input_dir (str): Directory containing input audio files.
         output_dir (str, optional): Directory to save transcription results in CSV files.
         input_chunks_dir (str, optional): Directory containing chunked audio files. Defaults to None.
+        chunking (bool, optional): Whether to chunk files into input_dir and save chunks in input_chunks_dir. Defaults to True.
         batch_size (int, optional): Number of audio files to be processed in a
         batch. Defaults to None.
         total_memory_gb (int, optional): Total GPU memory available in GB.
@@ -131,7 +132,6 @@ def run_batch_processing_queue(
         hf_access_token (str, optional): Hugging Face access token. Defaults to None.
         device (str, optional): Device to run the batch processing on (e.g.,
         'cpu' or 'cuda'). Defaults to None.
-        chunking (bool, optional): Whether to chunk files into input_dir and save chunks in input_chunks_dir. Defaults to True.
         language (str, optional): Language code for transcription. Defaults to None.
         sampling_rate (int, optional): Sampling rate for audio processing. Defaults to 16000.
         rerun (bool, optional): Whether to rerun the model on all files in the input directory. Defaults to False.
