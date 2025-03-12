@@ -105,9 +105,9 @@ def run_batch_processing_queue(
     hf_access_token: Optional[str] = None,
     device: Optional[str] = None,
     chunking: Optional[bool]=True,
-    language=None,
-    sampling_rate=16000,
-    rerun=False,
+    language: Optional[str]=None,
+    sampling_rate: Optional[int]=16000,
+    rerun: Optional[bool]=False,
 ):
     """
     The main function of batch processing: Set up and run a queue to
