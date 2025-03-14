@@ -29,15 +29,20 @@ dependencies = [
   "accelerate",
   "datasets>=3.3.2",
   "fastapi",
+  "ffmpeg>=1.4",
   "huggingface_hub",
+  "librosa>=0.11",
   "nox",
   "numpy<2",
   "pre-commit",
   "pydantic",
+  "pydub>=0.25.1",
   "python-dotenv",
   "slowapi",
+  "soundfile>0.12.0",
   "torch>=2.6",
   "transformers",
+  "typer>=0.15.2",
   "uvicorn",
 ]
 [project.optional-dependencies]
@@ -50,3 +55,9 @@ docs = [
 "Homepage" = "https://github.com/princeton-ddss/speech-recognition-inference"
 [project.scripts]
 speech_recognition_launcher = "cli:launch"
+speech_recognition_pipeline = "pipeline.main:app"
+
+[dependency-groups]
+dev = [
+    "ipython>=8.18.1",
+]
