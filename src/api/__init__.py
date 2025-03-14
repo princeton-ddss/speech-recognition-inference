@@ -15,7 +15,6 @@ load_dotenv()
 args = SpeechRecognitionInferenceParser().parse_args()
 
 config = SpeechRecognitionInferenceConfig()
-print("config", config.token)
 
 if args.model_dir is not None:
     config.model_dir = args.model_dir

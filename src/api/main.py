@@ -90,8 +90,7 @@ def run_transcription(
     summary="Health check",
     tags=["Speech Recognition Inference"],
 )
-@limiter.limit(limit_value="5/10seconds")  # Set up local rate limit on health end
-# point
+@limiter.limit(limit_value="5/10seconds")
 def health_check(request: Request) -> Response:
     return Response()
 
