@@ -72,7 +72,7 @@ transcription results in the output directory.
 To manually change these default options:
 ```shell
 speech_recognition_launcher \
-  --batch_processing \
+  --batch_processing True\
   --model_id openai/whisper-tiny \
   --model_dir $HOME/.cache/huggingface/hub
   --input_dir <input_dir_of_audio_files>
@@ -82,7 +82,7 @@ speech_recognition_launcher \
   --batch_size <batch_size>
   --rerun True
 ```
-We also provide a Docker image to run batch processing, 
+We also provide a Docker image to run batch processing pipeline, 
 `princetonddss/speech-recognition-inference`. To use it,
 simply run
 ```shell
@@ -91,7 +91,7 @@ docker run \
    -v <input_dir_of_audio_files>:/data/audio \
    -v <output_dir_to_save_results>:/outputs \
    speech-recognition-inference:latest \
-   --batch_processing \
+   --batch_processing True\
    --model_id openai/whisper-large-v3 \
    --model_dir /data/models \
    --input_dir /data/audio \
