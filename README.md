@@ -72,7 +72,7 @@ transcription results in the output directory.
 To manually change these default options:
 ```shell
 speech_recognition_launcher \
-  --batch_processing True\
+  --batch_processing \
   --model_id openai/whisper-tiny \
   --model_dir $HOME/.cache/huggingface/hub
   --input_dir <input_dir_of_audio_files>
@@ -91,7 +91,7 @@ docker run \
    -v <input_dir_of_audio_files>:/data/audio \
    -v <output_dir_to_save_results>:/outputs \
    speech-recognition-inference:latest \
-   --batch_processing True\
+   --batch_processing \
    --model_id openai/whisper-large-v3 \
    --model_dir /data/models \
    --input_dir /data/audio \
@@ -105,7 +105,7 @@ In addition to specifying settings at the command line, some settings can be pro
 - SRI_MODEL_DIR: the directory of model files
 - SRI_HOST: the host of automatic speech recognition API
 - SRI_PORT: the port of automatic speech recognition API
-- SRI_TOKEN: HuggingFace Access Token
+- HF_TOKEN: HuggingFace Access Token
 - SRI_INPUT_DIR: input directory of audio files for batch processing
 - SRI_OUTPUT_DIR: output directory to save transcription results
 
