@@ -54,8 +54,8 @@ docs = [
 [project.urls]
 "Homepage" = "https://github.com/princeton-ddss/speech-recognition-inference"
 [project.scripts]
-speech_recognition_launcher = "cli:launch"
-speech_recognition_pipeline = "pipeline.main:app"
+speech_recognition_launcher = "api.main:cli"
+speech_recognition_pipeline = "pipeline.main:cli"
 
 [dependency-groups]
 dev = [
