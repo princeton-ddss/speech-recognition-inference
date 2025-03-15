@@ -2,8 +2,9 @@ import os
 from typing import Optional, Union, Literal
 from dataclasses import dataclass
 
-import uvicorn
+import torch
 import typer
+import uvicorn
 from pydantic import BaseModel, Field, ConfigDict
 from fastapi import FastAPI, HTTPException, status
 from fastapi import Response, Request, Header
@@ -12,11 +13,10 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-import torch
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, Pipeline, pipeline
-from utils import download_hf_models, get_latest_commit
 
-from logger import logger
+from speech_recognition_inference.utils import download_hf_models, get_latest_commit
+from speech_recognition_inference.logger import logger
 
 
 class TranscriptionRequest(BaseModel):

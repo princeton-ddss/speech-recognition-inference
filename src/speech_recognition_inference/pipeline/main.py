@@ -10,11 +10,11 @@ from pydub import AudioSegment, utils
 from pydub.exceptions import CouldntDecodeError
 from datasets import Dataset, Audio
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
-from utils import download_hf_models, get_latest_commit
 import torch
 import typer
 
-from logger import logger
+from speech_recognition_inference.utils import download_hf_models, get_latest_commit
+from speech_recognition_inference.logger import logger
 
 
 cli = typer.Typer()

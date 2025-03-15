@@ -5,7 +5,7 @@ requires = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/api"]
+packages = ["src/speech_recognition_inference"]
 
 [project]
 name = "speech-recognition-inference"
@@ -54,8 +54,8 @@ docs = [
 [project.urls]
 "Homepage" = "https://github.com/princeton-ddss/speech-recognition-inference"
 [project.scripts]
-speech_recognition_launcher = "api.main:cli"
-speech_recognition_pipeline = "pipeline.main:cli"
+speech_recognition_launcher = "speech_recognition_inference.api.main:cli"
+speech_recognition_pipeline = "speech_recognition_inference.pipeline.main:cli"
 
 [dependency-groups]
 dev = [

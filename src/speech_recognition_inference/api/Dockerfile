@@ -18,3 +18,5 @@ RUN pip install .
 RUN mkdir -p /data
 RUN mkdir -p /data/models
 RUN mkdir -p /data/audio
+
+ENTRYPOINT ["speech_recognition_launcher", "--model-dir", "/data/models"]

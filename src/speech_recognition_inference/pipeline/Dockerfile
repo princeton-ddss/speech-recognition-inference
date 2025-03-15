@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.12
 FROM python:${PYTHON_VERSION} AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -18,3 +18,5 @@ RUN pip install .
 RUN mkdir -p /data
 RUN mkdir -p /data/models
 RUN mkdir -p /data/audio
+
+ENTRYPOINT ["speech_recognition_pipeline", "/data/audio", "--model-dir", "/data/models"]
