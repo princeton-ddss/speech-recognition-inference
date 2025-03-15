@@ -10,14 +10,14 @@ from pydub import AudioSegment, utils
 from pydub.exceptions import CouldntDecodeError
 from datasets import Dataset, Audio
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
-from hf import download_hf_models, get_latest_commit
+from utils import download_hf_models, get_latest_commit
 import torch
 import typer
 
 from logger import logger
 
 
-app = typer.Typer()
+cli = typer.Typer()
 
 
 class BatchIterator:
@@ -52,7 +52,7 @@ class BatchIterator:
             raise StopIteration
 
 
-@app.command()
+@cli.command()
 def main(
     input_dir: str,
     model_id: str = typer.Option(
