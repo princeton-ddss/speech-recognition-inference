@@ -1,4 +1,4 @@
-from pipeline.parsing import parse_string_into_result
+from pipeline.main import parse_string_to_result
 
 
 def test_parse_string():
@@ -9,7 +9,7 @@ def test_parse_string():
         " words, Dad.<|10.00|><|10.00|> He said that makes me feel.<|12.00|><|13.00|>"
         " You've never told your son that you love him.<|16.00|>"
     )
-    result = parse_string_into_result(input_string, "en")
+    result = parse_string_to_result(input_string, "en")
     assert result
 
 
@@ -19,5 +19,5 @@ def test_parse_string_with_missing_timestamps():
         " 830 a.m. I'm going to introduce here in a moment but I'm going to ask"
         " Councilman"
     )
-    result = parse_string_into_result(input_string, "en")
+    result = parse_string_to_result(input_string, "en")
     assert result
