@@ -17,6 +17,10 @@ def launch(
     auth_token: str | None = typer.Option(None, help=""),
     hf_token: str | None = typer.Option(None, help=""),
 ):
+    """Launch a speech-to-text API.
+
+    The API performs transcription on individual audio files specified by path on the API server.
+    """
     from speech_recognition_inference.api import (
         SpeechRecognitionInferenceConfig,
         build_app,
@@ -72,9 +76,9 @@ def pipeline(
         False, help="Re-run inference on *all* files in `input_dir`."
     ),
 ) -> None:
-    """Perform batch inference for all audio files in `input_dir`.
+    """Perform batch speech-to-text inference.
 
-    The command attempts to re-use previous transcription results, if possible.
+    Inference is run for all audio files in `input_dir`. The command attempts to re-use previous transcription results, if possible.
     """
 
     import os
