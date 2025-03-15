@@ -3,8 +3,6 @@ from typing import Optional, Union, Literal
 from dataclasses import dataclass
 
 import torch
-import typer
-import uvicorn
 from pydantic import BaseModel, Field, ConfigDict
 from fastapi import FastAPI, HTTPException, status
 from fastapi import Response, Request, Header
@@ -482,33 +480,3 @@ def transcribe_audio_file(
         result = pipe(audio_file, return_timestamps=True, return_language=True)
 
     return result
-
-
-cli = typer.Typer()
-
-
-@cli.command()
-def main(
-    model_id: str = typer.Option("openai/whisper-tiny", help=""),
-    revision: str | None = typer.Option(None, help=""),
-    model_dir: str = typer.Option("~/.cache/huggingface/hub", help=""),
-    host: str = typer.Option("localhost", help=""),
-    port: int = typer.Option("8080", help=""),
-    auth_token: str | None = typer.Option(None, help=""),
-    hf_token: str | None = typer.Option(None, help=""),
-):
-    config = SpeechRecognitionInferenceConfig()
-
-    app = build_app(
-        model_id=model_id or config.model_id,
-        revision=revision or config.revision,
-        model_dir=model_dir or config.model_dir,
-        auth_token=auth_token or config.auth_token,
-        hf_access_token=hf_token or config.hf_access_token,
-    )
-
-    uvicorn.run(
-        app,
-        host=host or config.host,
-        port=port or config.port,
-    )
