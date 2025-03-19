@@ -75,6 +75,9 @@ def pipeline(
     rerun: bool = typer.Option(
         False, help="Re-run inference on *all* files in `input_dir`."
     ),
+    chunk_only: bool = typer.Option(
+        False, help="Only run the chunking step (e.g., to avoid idle GPU allocations on HPC)."
+    ),
 ) -> None:
     """Perform batch speech-to-text inference.
 
@@ -150,6 +153,10 @@ def pipeline(
             if len(chunk_files) == 0:
                 logger.info("All audio files have already been processed!")
                 return None
+
+    if chunk_only:
+        logger.info("Done (chunk_only=True).")
+        return None
 
     model, processor, device = pipeline.load_model(
         model_dir=model_dir,
