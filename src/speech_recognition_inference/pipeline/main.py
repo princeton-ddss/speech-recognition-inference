@@ -13,7 +13,7 @@ from speech_recognition_inference.logger import logger
 
 
 class BatchIterator:
-    """Construct batches from Audio."""
+    """Constructs batches of 30s audio segments from Audio."""
 
     def __init__(self, audio: Audio, batch_size: int = 1) -> Self:
         self.array = audio["array"]
