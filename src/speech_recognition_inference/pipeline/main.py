@@ -15,7 +15,7 @@ from speech_recognition_inference.logger import logger
 class BatchIterator:
     """Construct batches from Audio."""
 
-    def __init__(self, audio: Audio, batch_size: int = 10) -> Self:
+    def __init__(self, audio: Audio, batch_size: int = 1) -> Self:
         self.array = audio["array"]
         self.sampling_rate = audio["sampling_rate"]
         self.path = audio["path"]
