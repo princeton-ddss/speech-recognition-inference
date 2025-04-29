@@ -56,7 +56,7 @@ def pipeline(
         None, help="The model revision to use for inference."
     ),
     batch_size: Optional[int] = typer.Option(
-        None, help="The batch size to use for inference."
+        1, help="The batch size to use for inference."
     ),
     allocation: Optional[float] = typer.Option(
         0.9, help="The proportion of available GPU memory to use."
@@ -75,9 +75,6 @@ def pipeline(
     rerun: bool = typer.Option(
         False, help="Re-run inference on *all* files in `input_dir`."
     ),
-    chunk_only: bool = typer.Option(
-        False, help="Only run the chunking step (e.g., to avoid idle GPU allocations on HPC)."
-    ),
 ) -> None:
     """Perform batch speech-to-text inference.
 
@@ -86,9 +83,17 @@ def pipeline(
 
     import os
     import time
+    import json
     from dotenv import load_dotenv
 
-    from speech_recognition_inference import pipeline
+    from datasets import Dataset, Audio
+
+    from speech_recognition_inference.pipeline import (
+        BatchIterator,
+        process_batch,
+        load_model,
+        Transcription,
+    )
     from speech_recognition_inference.logger import logger
 
     if hf_access_token is None:
@@ -100,65 +105,40 @@ def pipeline(
     model_dir = os.path.abspath(model_dir)
 
     if output_dir is None:
-        output_dir = os.path.join(input_dir, "out")
+        output_dir = os.path.join(input_dir, "transcripts")
         if not os.path.isdir(output_dir):
             logger.debug(f"Making new output directory {output_dir}")
             os.mkdir(output_dir)
 
+    input_files = [
+        f
+        for f in os.listdir(input_dir)
+        if not f.startswith(".") and os.path.isfile(os.path.join(input_dir, f))
+    ]
+
     if rerun:
-        try:
-            chunk_files = pipeline.chunk_all(input_dir)
-        except Exception as e:
-            logger.error(f"Failed to chunk input directory: {e}")
-            return None
+        paths = [os.path.join(input_dir, f) for f in input_files]
+        dataset = Dataset.from_dict({"audio": paths}).cast_column(
+            "audio", Audio(sampling_rate=sampling_rate)
+        )
     else:
-        if not os.path.isdir(os.path.join(input_dir, "chunks")):
-            logger.info(f"No chunks found. Chunking all audio files in {input_dir}...")
-            try:
-                chunk_files = pipeline.chunk_all(input_dir)
-            except Exception as e:
-                logger.error(f"Failed to chunk input directory: {e}")
-                return None
+        logger.info("Determining audio files remaining to process...")
+        output_files = [f for f in os.listdir(output_dir)]
+        paths = [
+            os.path.join(input_dir, f)
+            for f in input_files
+            if f"{os.path.splitext(f)[0]}.json" not in output_files
+        ]
+        if paths == []:
+            logger.info("All audio files have already been processed!")
+            return None
         else:
-            logger.info(
-                "Found existing chunks. Determining audio files remaining to process..."
+            logger.info(f"Found {len(paths)} remaining files.")
+            dataset = Dataset.from_dict({"audio": paths}).cast_column(
+                "audio", Audio(sampling_rate=sampling_rate)
             )
-            input_files = [
-                f
-                for f in os.listdir(input_dir)
-                if not f.startswith(".") and os.path.isfile(os.path.join(input_dir, f))
-            ]
-            output_files = [f for f in os.listdir(output_dir)]
-            remaining_files = [
-                f
-                for f in input_files
-                if f"{os.path.splitext(f)[0]}.json" not in output_files
-            ]
-            if remaining_files == []:
-                logger.info("All audio files have already been processed!")
-                return None
-            else:
-                logger.info(
-                    f"Found {len(remaining_files)} remaining files. Attempting to"
-                    " chunk..."
-                )
-                try:
-                    chunk_files = pipeline.chunk_many(
-                        [os.path.join(input_dir, f) for f in remaining_files],
-                        output_dir=os.path.join(input_dir, "chunks"),
-                    )
-                except Exception as e:
-                    logger.error(f"Failed to chunk remaining files: {e}")
-                    return None
-            if len(chunk_files) == 0:
-                logger.info("All audio files have already been processed!")
-                return None
 
-    if chunk_only:
-        logger.info("Done (chunk_only=True).")
-        return None
-
-    model, processor, device = pipeline.load_model(
+    model, processor, device = load_model(
         model_dir=model_dir,
         model_id=model_id,
         revision=revision,
@@ -171,28 +151,39 @@ def pipeline(
     nchunks = 0
 
     logger.info("Starting batch inference...")
-    for batch in pipeline.BatchIterator(chunk_files, batch_size=batch_size):
-        pipeline.process_batch(
-            model, processor, batch, device, language, sampling_rate, output_dir
-        )
+    for data in dataset:
+        logger.debug(f"File: {data['audio']['path']}")
+        offset = 0  # seconds
+        transcription = Transcription(language=language, text="", chunks=[])
+        for batch in BatchIterator(data["audio"], batch_size=batch_size):
+            tmp = process_batch(
+                batch,
+                model,
+                processor,
+                device,
+                language,
+                sampling_rate,
+                base_offset=offset,
+            )
+            transcription.append(tmp)
+            step += 1
+            offset += 30 * len(batch)
+            nchunks += len(batch)
+            elapsed = time.time() - starttime
+            logger.info(
+                f"step: {step:4d}, nchunks: {nchunks:5d}, offset: {offset:5d}, elapsed:"
+                f" {elapsed:0.3f} seconds"
+            )
 
-        step += 1
-        nchunks += len(batch)
-        elapsed = time.time() - starttime
-        logger.info(
-            f"step: {step:4d}, nchunks: {nchunks:5d}, elapsed: {elapsed:0.3f} seconds"
-        )
+        base = os.path.basename(data["audio"]["path"])
+        root, _ = os.path.splitext(base)
+        with open(os.path.join(output_dir, f"{root}.json"), "w") as f:
+            json.dump(transcription.model_dump(), f)
 
     logger.info(
         f"Finished processing {nchunks} chunks in"
         f" {(time.time() - starttime):0.3f} seconds."
     )
-
-    logger.info(f"Concatenating results and writing to {output_dir}...")
-    pipeline.concatenate_results(output_dir)
-
-    logger.info("Cleaning up temporary outputs...")
-    pipeline.clean_up(output_dir)
 
     logger.info("Done.")
 

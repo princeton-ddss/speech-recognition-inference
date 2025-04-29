@@ -1,49 +1,45 @@
 import os
 import re
-import json
-from typing import Any, Optional
+from typing import Any, Optional, Self
 
-import shutil
-from pydub import AudioSegment, utils
-from pydub.exceptions import CouldntDecodeError
-from datasets import Dataset, Audio
+from pydantic import BaseModel
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 import torch
+import numpy as np
 
+from datasets import Audio
 from speech_recognition_inference.utils import download_hf_models, get_latest_commit
 from speech_recognition_inference.logger import logger
 
 
 class BatchIterator:
-    def __init__(self, items: list, batch_size: int):
-        self.items = items
+    """Construct batches from Audio."""
+
+    def __init__(self, audio: Audio, batch_size: int = 10) -> Self:
+        self.array = audio["array"]
+        self.sampling_rate = audio["sampling_rate"]
+        self.path = audio["path"]
         self.batch_size = batch_size
         self._idx = 0
 
-    @property
-    def size(self):
-        return len(self.items)
-
-    # @property
-    # def batch_size(self):
-    #     batch_size = calculate_batch_size(
-    #         max_file_size=max_file_size,
-    #         remaining_proportion=remaining_proportion,
-    #         device=device,
-    #     )
-
-    def __iter__(self):
+    def __iter__(self) -> Self:
         return self
 
-    def __next__(self) -> list:
-        """Construct the next batch of items."""
-
-        if self._idx < self.size:
-            batch = self.items[self._idx : min(self._idx + self.batch_size, self.size)]
-            self._idx += self.batch_size
+    def __next__(self) -> list[np.array]:
+        if self._idx < len(self.array):
+            batch = []
+            while len(batch) < self.batch_size and self._idx < len(self.array):
+                sample = self.array[self._idx : self._idx + self.sample_len]
+                self._idx += self.sample_len
+                batch.append(sample)
             return batch
         else:
             raise StopIteration
+
+    @property
+    def sample_len(self) -> int:
+        """Length of a 30s sample."""
+        return self.sampling_rate * 30
 
 
 def estimate_batch_size(device: str, allocation: float = 0.9):
@@ -170,164 +166,95 @@ def load_model(
     return model, processor, device
 
 
-def chunk_one(audio_path: str, output_dir: str, chunk_len: int = 30) -> list[str]:
-    """Split a audio file in equal-length chunks and write to file.
-
-    Copy the file to the output directory without chunking if the original file length is less than
-    the desired chunk length.
-
-    Args:
-        audio_path: The path of an input audio file.
-        output_dir: A directory to store output audio chunks.
-        chunk_len: The desired chunk length in seconds.
-
-    Returns:
-        A list of paths to the newly created audio chunk files.
-
-    Raises:
-        None
-    """
-
-    base = os.path.basename(audio_path)
-    logger.debug(f"Creating chunks for {base}")
-
-    audio = AudioSegment.from_file(audio_path)
-
-    chunk_paths = []
-    root, ext = os.path.splitext(base)
-    if len(audio) <= chunk_len * 1e3:
-        logger.debug(f"Audio file {base} is less than 30s. Creating a single chunk.")
-        chunk_path = os.path.join(output_dir, f"{root}_0{ext}")
-        shutil.copy(
-            audio_path,
-        )
-        chunk_paths.append(chunk_path)
-    else:
-        chunks = utils.make_chunks(audio, chunk_len * 1e3)
-        for idx, chunk in enumerate(chunks):
-            chunk_path = os.path.join(output_dir, f"{root}_{idx}{ext}")
-            chunk.export(chunk_path)
-            chunk_paths.append(chunk_path)
-
-    return chunk_paths
+class TranscriptChunk(BaseModel):
+    text: Optional[str] = None
+    timestamp: tuple[float, float]
 
 
-def chunk_many(
-    audio_paths: list[str], output_dir: str, chunk_len: int = 30
-) -> list[str]:
-    """Split a list of audio files into 30 seconds chunks.
+class Transcription(BaseModel):
+    language: Optional[str] = None
+    text: str
+    chunks: list[TranscriptChunk]
 
-    Args:
-        audio_paths: A list of audio files to chunk.
-        output_dir: A directory to store output audio chunks.
-        chunk_len: The desired chunk length in seconds.
+    @classmethod
+    def from_string(cls, string: str, language: str, offset: int = 0) -> Self:
+        """
+        Construct a transcription from a raw result string.
 
-    Returns:
-        None
+        Args
+            language (str): The language used for decoding.
+            offset (int, optional): The value to add to the start and end of each
+                timestamp. Defaults to 0.
+        """
+        pattern = re.compile(r"<\|(\d+\.\d+)\|>([^<]+)<\|(\d+\.\d+)\|>")
+        matches = pattern.findall(string)
 
-    Raises:
-        Exception: Audio chunks already present in `chunks` directory.
-    """
+        if not matches:
+            return Transcription(
+                language=language,
+                text=re.sub(r"<\|.*?\|> |!\s", "", string).strip(),
+                chunks=[
+                    {"timestamp": (0, 30), "text": string}
+                ],  # No segments => remove random timestamps
+            ).adjust_timestamps(offset=offset)
+        else:
+            return Transcription(
+                language=language,
+                text="".join([match[1] for match in matches]),
+                chunks=[
+                    {"timestamp": (float(match[0]), float(match[2])), "text": match[1]}
+                    for match in matches
+                ],
+            ).adjust_timestamps(offset=offset)
 
-    if not os.path.exists(output_dir):
-        logger.debug(f"Making new chunks directory {output_dir}")
-        os.makedirs(output_dir)
+    @classmethod
+    def from_list(cls, transcripts: list[Self], language: str, offset: int = 0) -> Self:
+        text = "".join([t.text for t in transcripts])
+        chunks = [c for chunks in [t.chunks for t in transcripts] for c in chunks]
+        return Transcription(
+            language=language, text=text, chunks=chunks
+        ).adjust_timestamps(offset=offset)
 
-    logger.debug(f"Creating audio chunks and writing to {output_dir}.")
+    def append(self, transcript: Self, offset: int = 0) -> Self:
+        if offset > 0:
+            transcript.adjust_timestamps(offset=offset)
+        self.text += transcript.text
+        self.chunks += transcript.chunks
+        return self
 
-    audio_paths = [
-        p
-        for p in audio_paths
-        if not os.path.basename(p).startswith(".") and os.path.isfile(p)
-    ]
+    def adjust_timestamps(self, offset: int = 0) -> Self:
+        """
+        Adjusts the timestamps of all transcript chunks by applying an offset.
 
-    output_files = []
-    nsuccess = 0
-    ntotal = len(audio_paths)
-    for audio_path in audio_paths:
-        try:
-            chunks = chunk_one(audio_path, output_dir, chunk_len=chunk_len)
-        except CouldntDecodeError:
-            logger.warning(
-                f"Could not decode input {os.path.basename(audio_path)}. Skipping."
+        Args:
+            offset (int, optional): The value to add to the start and end of each
+                timestamp. Defaults to 0.
+        Returns:
+            Self: The updated instance of the class with adjusted timestamps.
+        """
+
+        self.chunks = [
+            TranscriptChunk(
+                text=c.text,
+                timestamp=(
+                    offset + c.timestamp[0],
+                    offset + c.timestamp[1],
+                ),
             )
-            continue
-
-        output_files.extend(chunks)
-        nsuccess += 1
-
-    logger.debug(
-        f"Chunking complete. Successfully chunked {nsuccess} of {ntotal} files."
-    )
-
-    return output_files
-
-
-def chunk_all(
-    audio_dir: str, output_dir: str | None = None, chunk_len: int = 30
-) -> list[str]:
-    """Split all audio files in a directory into 30 seconds chunks.
-
-    Args:
-        audio_dir: A directory containing audio files to chunk.
-        output_dir: A directory to store output audio chunks. Default: <audio_dir>/chunks.
-        chunk_len: The desired chunk length in seconds.
-
-    Returns:
-        None
-
-    Raises:
-        None
-    """
-
-    logger.debug(
-        "Creating audio chunks and writing to"
-        f" {os.path.abspath(os.path.join(audio_dir, 'chunks'))}"
-    )
-
-    output_dir = os.path.join(audio_dir, "chunks")
-    if not os.path.exists(output_dir):
-        logger.debug(f"Making new chunks directory {output_dir}")
-        os.makedirs(output_dir)
-
-    input_files = [
-        f
-        for f in os.listdir(audio_dir)
-        if not f.startswith(".") and os.path.isfile(os.path.join(audio_dir, f))
-    ]
-    output_files = []
-    nsuccess = 0
-    ntotal = len(input_files)
-    for f in input_files:
-        try:
-            chunks = chunk_one(
-                os.path.join(audio_dir, f),
-                output_dir,
-                chunk_len=chunk_len,
-            )
-        except CouldntDecodeError:
-            logger.warning(f"Could not decode input {f}. Skipping.")
-            continue
-
-        output_files.extend(chunks)
-        nsuccess += 1
-
-    logger.debug(
-        f"Chunking complete. Successfully chunked {nsuccess} of {ntotal} files."
-    )
-
-    return output_files
+            for c in self.chunks
+        ]
+        return self
 
 
 def process_batch(
+    batch: list[np.array],
     model: WhisperForConditionalGeneration,
     processor: tuple[WhisperProcessor, dict[str, Any]] | WhisperProcessor,
-    audio_paths: list[str],
     device: str,
     language: Optional[str] = None,
     sampling_rate: int = 16000,
-    output_dir: Optional[str] = None,
-) -> None:
+    base_offset: int = 0,
+) -> Transcription:
     """Run inference on a single batch of audio files.
 
     Args:
@@ -336,7 +263,7 @@ def process_batch(
         output_dir: save transcription results in csv file in output path
 
     Returns:
-        None
+        Transcription
 
     Raises:
         None
@@ -348,12 +275,6 @@ def process_batch(
         )
     else:
         forced_decoder_ids = None
-
-    dataset = Dataset.from_dict({"audio": audio_paths}).cast_column(
-        "audio", Audio(sampling_rate=sampling_rate)
-    )
-
-    batch = [data["audio"]["array"] for data in dataset]
 
     input_features = processor(
         batch,
@@ -374,93 +295,19 @@ def process_batch(
     if not language:
         language = processor.decode(predicted_ids[0, 1], device=device)[2:-2]
 
-    transcriptions = processor.batch_decode(
+    results = processor.batch_decode(
         predicted_ids,
         skip_special_tokens=True,
         decode_with_timestamps=True,
         device=device,
     )
 
-    for path, raw_string in zip(audio_paths, transcriptions):
-        base = os.path.basename(path)
-        root, _ = os.path.splitext(base)
-        result = parse_string_to_result(raw_string, language=language)
-        with open(os.path.join(output_dir, f"{root}.json"), "w") as f:
-            json.dump(result, f)
-
-    return None
-
-
-def parse_string_to_result(input_string, language):
-    """Parse raw string to result format."""
-
-    pattern = re.compile(r"<\|(\d+\.\d+)\|>([^<]+)<\|(\d+\.\d+)\|>")
-    matches = pattern.findall(input_string)
-
-    result = {}
-    result["language"] = language
-    if not matches:
-        # No segments => remove random timestamps
-        result["text"] = re.sub(r"<\|.*?\|> |!\s", "", input_string).strip()
-        result["chunks"] = [{"timestamp": (0, 30), "text": input_string}]
-    else:
-        result["text"] = ""
-        result["chunks"] = []
-        for match in matches:
-            result["text"] += match[1]
-            result["chunks"] += [
-                {"timestamp": (float(match[0]), float(match[2])), "text": match[1]}
-            ]
-
-    return result
-
-
-def concatenate_results(output_dir: str, chunk_len: int = 30) -> None:
-    """Merge transcription results into a single file."""
-
-    output_files = [c for c in os.listdir(output_dir) if c.endswith(".json")]
-    output_files.sort()  # sort by timestamp
-
-    results = {}
-    for output_file in output_files:
-        match = re.search(r"(.*)_(\d+)\.json$", output_file)
-        if not match:
-            continue  # skip previously concatenated results
-        parent = match.group(1)
-        index = int(match.group(2))
-        with open(os.path.join(output_dir, output_file), "r") as f:
-            result = json.load(f)
-
-        if parent in results:
-            results[parent]["text"] += result["text"]
-            results[parent]["chunks"] += fix_timestamps(
-                result["chunks"], index, chunk_len=chunk_len
+    return Transcription.from_list(
+        [
+            Transcription.from_string(
+                string, language=language, offset=base_offset + 30 * idx
             )
-        else:
-            if index > 0:
-                raise Exception("First result should be order 0.")
-            results[parent] = result
-
-    for parent, result in results.items():
-        with open(os.path.join(output_dir, f"{parent}.json"), "w") as f:
-            json.dump(result, f)
-
-
-def clean_up(output_dir: str) -> None:
-    """Remove temporary output files."""
-    output_files = os.listdir(output_dir)
-    for f in output_files:
-        match = re.search(r"(.*)_(\d+)\.json$", f)
-        if match:
-            os.remove(os.path.join(output_dir, f))
-
-
-def fix_timestamps(chunks: list[dict], index: int, chunk_len: int = 30) -> list[dict]:
-    offset = chunk_len * index
-    for chunk in chunks:
-        chunk["timestamp"] = (
-            chunk["timestamp"][0] + offset,
-            chunk["timestamp"][1] + offset,
-        )
-
-    return chunks
+            for idx, string in enumerate(results)
+        ],
+        language=language,
+    )
