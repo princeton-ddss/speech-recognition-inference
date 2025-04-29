@@ -1,5 +1,6 @@
 import os
 import re
+from warnings import deprecated
 from typing import Any, Optional, Self
 
 from pydantic import BaseModel
@@ -42,6 +43,7 @@ class BatchIterator:
         return self.sampling_rate * 30
 
 
+@deprecated
 def estimate_batch_size(device: str, allocation: float = 0.9):
     """Estimate the size of a batch based on allocation of a single 30s segment.
 
