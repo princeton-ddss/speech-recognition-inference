@@ -1,6 +1,6 @@
 import os
 import re
-from warnings import deprecated
+from deprecated import deprecated
 from typing import Any, Optional, Self
 
 from pydantic import BaseModel

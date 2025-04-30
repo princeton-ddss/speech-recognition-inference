@@ -28,6 +28,7 @@ classifiers = [
 dependencies = [
   "accelerate",
   "datasets>=3.3.2",
+  "deprecated>=1.2.18",
   "dotenv>=0.9.9",
   "fastapi",
   "ffmpeg>=1.4",
