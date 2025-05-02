@@ -9,24 +9,24 @@ packages = ["src/speech_recognition_inference"]
 
 [project]
 name = "speech-recognition-inference"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Speech-to-Text API."
 readme = "README.md"
 license = "MIT"
 authors = [
   { name="Junying (Alice) Fang", email="jf3375@princeton.edu" },
+  { name="Colin Swaney", email="colinswaney@princeton.edu" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
   "accelerate",
+  "colorlog>=6.9",
   "datasets>=3.3.2",
   "deprecated>=1.2.18",
   "dotenv>=0.9.9",
@@ -34,9 +34,7 @@ dependencies = [
   "ffmpeg>=1.4",
   "huggingface_hub",
   "librosa>=0.11",
-  "nox",
   "numpy<2",
-  "pre-commit",
   "pydantic",
   "pydub>=0.25.1",
   "python-dotenv",
@@ -47,12 +45,6 @@ dependencies = [
   "typer>=0.15.2",
   "uvicorn",
 ]
-[project.optional-dependencies]
-docs = [
-  "myst_parser",
-  "sphinx",
-  "sphinx-rtd-theme",
-]
 [project.urls]
 "Homepage" = "https://github.com/princeton-ddss/speech-recognition-inference"
 [project.scripts]
@@ -60,5 +52,8 @@ speech_recognition = "speech_recognition_inference.cli:app"
 
 [dependency-groups]
 dev = [
-    "ipython>=8.18.1",
+    "ipython>=9.2.0",
+    "nox>=2025.5.1",
+    "pre-commit>=4.2.0",
+    "pytest>=8.3.5",
 ]
