@@ -12,7 +12,7 @@ on:
     branches: [ "main"]
     tags: [ 'v*.*.*' ]
   pull_request:
-    branches: ["main", "dev"]
+    branches: ["main"]
 
 env:
   REGISTRY: ghcr.io
@@ -92,6 +92,8 @@ jobs:
         if: github.event_name == 'push' && startsWith(github.ref,'refs/tags/v')
         id: build-and-push
         uses: docker/build-push-action@v5
+        env:
+          VERSION: ${{env.VERSION}}
         with:
           context: .
           file: ./Dockerfile
@@ -112,4 +114,6 @@ jobs:
         if: ${{ github.event_name == 'push' && startsWith(github.ref,'refs/tags/v')}}
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
+        env:
+          VERSION: ${{env.VERSION}}
         run: cosign sign ghcr.io/${{env.IMAGE_NAME}}:${{env.VERSION}}

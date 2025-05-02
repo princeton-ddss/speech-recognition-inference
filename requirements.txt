@@ -5,6 +5,8 @@ nox
 numpy<2.0
 pre-commit
 pydantic
-torch
+python-dotenv
+slowapi
+torch>=2.6.0
 transformers
 uvicorn
