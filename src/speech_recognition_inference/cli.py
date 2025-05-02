@@ -13,7 +13,7 @@ def launch(
     revision: str | None = typer.Option(None, help=""),
     model_dir: str = typer.Option("~/.cache/huggingface/hub", help=""),
     host: str = typer.Option("localhost", help=""),
-    port: int = typer.Option("8080", help=""),
+    port: int = typer.Option(8080, help=""),
     auth_token: str | None = typer.Option(None, help=""),
     hf_token: str | None = typer.Option(None, help=""),
 ):
