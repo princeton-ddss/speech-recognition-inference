@@ -1,113 +1,106 @@
 # speech-recognition-inference
-This repo provides an API that serves speech-to-text models from HuggingFace Hub.
-Simply choose the model and (optionally) revision that you would like to serve, and
-`speech-recognition-inference` will launch an API that performs automatic speech
-recognition on any audio file you specify.
+This repo provides a command-line tool for performing automatic speech-to-text tasks (i.e., "transcription") using open source models from Hugging Face Hub. For interactive tasks, it allows users to spin up an inference API. For bulk processing, it furnishes a pipeline for running inference on the contents of a specified directory.
 
 ## Quickstart
 
 ### Pip
-First, install `ffmpeg` if this is not already installed on your machine.
+First, [install](https://ffmpeg.org/download.html) `ffmpeg` if it is not already installed on your machine.
 
-Next, clone the repository and install:
+Next, clone the repository and install it:
 ```shell
 git clone https://github.com/princeton-ddss/speech-recognition-inference.git
 cd speech-recognition-inference
-python -m venv venv
+python -m venv .venv
 pip install --upgrade pip
 pip install . # or pip install -e . for development
 ```
 
-### API
-Now start an API from the command-line:
+To start an API from the command-line, simply run:
 ```shell
-speech_recognition_launcher \
+speech_recognition launch \
   --port 8000:8000 \
-  --model_id openai/whisper-tiny \
-  --model_dir $HOME/.cache/huggingface/hub
+  --model-id openai/whisper-tiny \
+  --model-dir $HOME/.cache/huggingface/hub
 ```
 
-We also provide a Docker image to start an API, 
-`princetonddss/speech-recognition-inference`. To use it,
-simply run
+Once the application startup is complete, you can submit requests using any HTTP request
+library or tool, e.g.,
+```shell
+curl localhost:8000/transcribe \
+  -X POST \
+  -d '{"audio_file": "/tmp/female.wav", "response_format": "json"}' \
+  -H 'Content-Type: application/json'
+```
+
+To run batch processing, run:
+```shell
+speech_recognition pipeline /data/audio \
+  --model-id openai/whisper-tiny \
+  --model-dir $HOME/.cache/huggingface/hub
+```
+
+### Docker
+We also provide a Docker image, `ghcr.io/princeton-ddss/speech-recognition-inference`. To run the API via Docker use the following command:
 ```shell
 docker run \
-   -p 8000:8000 \
-   -v $HOME/.cache/huggingface/hub:/data/models \
-   -v /tmp:/data/audio \
-   speech-recognition-inference:latest \
+  -p 8000:8000 \
+  -v $HOME/.cache/huggingface/hub:/data/models \
+  -v /tmp:/data/audio \
+  ghcr.io/princeton-ddss/speech-recognition-inference:latest \
+  launch \
   --port 8000 \
   --model_id openai/whisper-large-v3 \
   --model_dir /data/models
 ```
 
-Once the application startup is complete, submit requests using any HTTP request
-library or tool, e.g.,
+This command makes the API available on `localhost:8000` and makes host model and audio files available to the container via bind mounting. Sending requests is the same as above, but note that the container only has access to bind mounted files. Above, this means that requests should replace `/tmp` with `/data/audio`:
+
 ```shell
-curl localhost:8000/transcribe \  -X POST \
-  -d '{"audio_file": "/tmp/female.wav", "response_format": "json"}' \
+curl localhost:8000/transcribe \
+  -X POST \
+  -d '{"audio_file": "/data/audio/female.wav", "response_format": "json"}' \
   -H 'Content-Type: application/json'
 ```
 
-### Batch Processing
-To run batch processing pipeline from the command-line:
-```shell
-speech_recognition_launcher \
-  --batch_processing \
-  --model_id openai/whisper-tiny \
-  --model_dir $HOME/.cache/huggingface/hub
-  --input_dir <input_dir_of_audio_files>
-  --output_dir <output_dir_to_save_results>
-```
-
-Please only put all the audio files in the input directory. The 
-transcription results of each audio file will be saved in csv files in the 
-output directory.
-
-The batch processing pipeline will by default chunk audio files into 30 
-seconds chunks, calculate the batch size for batch processing, and run the 
-batch processing pipeline on not procesesd input files which do not have 
-transcription results in the output directory.
-
-To manually change these default options:
-```shell
-speech_recognition_launcher \
-  --batch_processing \
-  --model_id openai/whisper-tiny \
-  --model_dir $HOME/.cache/huggingface/hub
-  --input_dir <input_dir_of_audio_files>
-  --output_dir <output_dir_to_save_results>
-  --input_chunks_dir <input_dir_of_audio_chunks>
-  --chunking False
-  --batch_size <batch_size>
-  --rerun True
-```
-We also provide a Docker image to run batch processing pipeline, 
-`princetonddss/speech-recognition-inference`. To use it,
-simply run
+To run batch processing via Docker, replace the `launch` command with `pipeline` and update the options:
 ```shell
 docker run \
-   -v $HOME/.cache/huggingface/hub:/data/models \
-   -v <input_dir_of_audio_files>:/data/audio \
-   -v <output_dir_to_save_results>:/outputs \
-   speech-recognition-inference:latest \
-   --batch_processing \
-   --model_id openai/whisper-large-v3 \
-   --model_dir /data/models \
-   --input_dir /data/audio \
-   --output_dir /outputs
+  -v $HOME/.cache/huggingface/hub:/data/models \
+  -v /tmp:/data/audio \
+  ghcr.io/princeton-ddss/speech-recognition-inference:latest \
+  pipeline \
+  /data/audio \
+  --model_id openai/whisper-large-v3 \
+  --model_dir /data/models
 ```
 
+Again, note that `/tmp` is bound to `/data/audio` on the host, so this command runs inference on all audio files in `/tmp` on the host.
+
+
 ## Detailed Usage
+Full usage details are available via the `--help` option. For example,
+```shell
+❯ speech_recognition --help
+
+ Usage: speech_recognition [OPTIONS] COMMAND [ARGS]...
+
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --install-completion          Install completion for the current shell.                                                                          │
+│ --show-completion             Show completion for the current shell, to copy it or customize the installation.                                   │
+│ --help                        Show this message and exit.                                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ launch     Launch a speech-to-text API.                                                                                                          │
+│ pipeline   Perform batch speech-to-text inference.                                                                                               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```
 
 ### Environment Variables
 In addition to specifying settings at the command line, some settings can be provided through environment variables. These settings are:
-- SRI_MODEL_DIR: the directory of model files
-- SRI_HOST: the host of automatic speech recognition API
-- SRI_PORT: the port of automatic speech recognition API
-- HF_TOKEN: HuggingFace Access Token
-- SRI_INPUT_DIR: input directory of audio files for batch processing
-- SRI_OUTPUT_DIR: output directory to save transcription results
 
+- `SRI_HOST` - Host to use for the API.
+- `SRI_PORT` - Port to use for the API.
+- `SRI_TOKEN` - Authentication token to use for authenticated API access.
+- `HF_ACCESS_TOKEN` - Authentication token to use for authentication with the Hugging Face Hub API.
 
-Command line arguments always take precedence over environment variables.
+Users can set environment variables by `export`ing or via a `.env` file. *Command line arguments always take precedence over environment variables.*

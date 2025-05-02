@@ -12,7 +12,7 @@ on:
     branches: [ "main"]
     tags: [ 'v*.*.*' ]
   pull_request:
-    branches: ["main", "dev"]
+    branches: ["main"]
 
 env:
   REGISTRY: ghcr.io
