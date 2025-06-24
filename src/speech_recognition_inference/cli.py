@@ -75,6 +75,7 @@ def pipeline(
     rerun: bool = typer.Option(
         False, help="Re-run inference on *all* files in `input_dir`."
     ),
+    job_id: str = typer.Option(None, help="An ID to associate with this batch job."),
 ) -> None:
     """Perform batch speech-to-text inference.
 
@@ -95,6 +96,66 @@ def pipeline(
         Transcription,
     )
     from speech_recognition_inference.logger import logger
+
+    def create_checkpoint(
+        ntotal, nsuccess, nfail, input_dir, filename=".checkpoint", update=False
+    ):
+        if update:
+            logger.info("Updating checkpoint file...")
+        else:
+            logger.info("Creating checkpoint file...")
+        with open(os.path.join(input_dir, filename), "w") as f:
+            json.dump(
+                {
+                    "ntotal": ntotal,
+                    "nsuccess": nsuccess,
+                    "nfail": nfail,
+                },
+                f,
+            )
+
+    def transcribe_file(
+        data,
+        model,
+        processor,
+        device,
+        batch_size,
+        language,
+        sampling_rate,
+        offset,
+        step,
+        nchunks,
+        starttime,
+        output_dir,
+    ) -> Transcription:
+        transcription = Transcription(language=language, text="", chunks=[])
+
+        for batch in BatchIterator(data["audio"], batch_size=batch_size):
+            tmp = process_batch(
+                batch,
+                model,
+                processor,
+                device,
+                language,
+                sampling_rate,
+                base_offset=offset,
+            )
+            transcription.append(tmp)
+            step += 1
+            offset += 30 * len(batch)
+            nchunks += len(batch)
+            elapsed = time.time() - starttime
+            logger.info(
+                f"step: {step:4d}, nchunks: {nchunks:5d}, offset: {offset:5d}, elapsed:"
+                f" {elapsed:0.3f} seconds"
+            )
+
+        base = os.path.basename(data["audio"]["path"])
+        root, _ = os.path.splitext(base)
+        with open(os.path.join(output_dir, f"{root}.json"), "w") as f:
+            json.dump(transcription.model_dump(), f)
+
+        return step, nchunks
 
     if hf_access_token is None:
         load_dotenv()
@@ -138,6 +199,17 @@ def pipeline(
                 "audio", Audio(sampling_rate=sampling_rate)
             )
 
+    ntotal = len(paths)
+    nsuccess = 0
+    nfail = 0
+    create_checkpoint(
+        ntotal,
+        nsuccess,
+        nfail,
+        input_dir,
+        filename=f".checkpoint-{job_id if job_id else ''}",
+    )
+
     model, processor, device = load_model(
         model_dir=model_dir,
         model_id=model_id,
@@ -154,31 +226,35 @@ def pipeline(
     for data in dataset:
         logger.debug(f"File: {data['audio']['path']}")
         offset = 0  # seconds
-        transcription = Transcription(language=language, text="", chunks=[])
-        for batch in BatchIterator(data["audio"], batch_size=batch_size):
-            tmp = process_batch(
-                batch,
+
+        try:
+            transcribe_file(
+                data,
                 model,
                 processor,
                 device,
+                batch_size,
                 language,
                 sampling_rate,
-                base_offset=offset,
+                offset,
+                step,
+                nchunks,
+                starttime,
+                output_dir,
             )
-            transcription.append(tmp)
-            step += 1
-            offset += 30 * len(batch)
-            nchunks += len(batch)
-            elapsed = time.time() - starttime
-            logger.info(
-                f"step: {step:4d}, nchunks: {nchunks:5d}, offset: {offset:5d}, elapsed:"
-                f" {elapsed:0.3f} seconds"
-            )
+            nsuccess += 1
+        except Exception as e:
+            logger.error(f"Failed to transcribe batch: {e}")
+            nfail += 1
 
-        base = os.path.basename(data["audio"]["path"])
-        root, _ = os.path.splitext(base)
-        with open(os.path.join(output_dir, f"{root}.json"), "w") as f:
-            json.dump(transcription.model_dump(), f)
+        create_checkpoint(
+            ntotal,
+            nsuccess,
+            nfail,
+            input_dir,
+            filename=f".checkpoint-{job_id if job_id else ''}",
+            update=True,
+        )
 
     logger.info(
         f"Finished processing {nchunks} chunks in"
