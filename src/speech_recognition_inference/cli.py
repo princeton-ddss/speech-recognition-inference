@@ -1,5 +1,5 @@
 import typer
-from typing import Optional
+from typing import Optional, Tuple
 
 import uvicorn
 
@@ -98,8 +98,13 @@ def pipeline(
     from speech_recognition_inference.logger import logger
 
     def create_checkpoint(
-        ntotal, nsuccess, nfail, input_dir, filename=".checkpoint", update=False
-    ):
+        ntotal: int,
+        nsuccess: int,
+        nfail: int,
+        input_dir: str,
+        filename: str = ".checkpoint",
+        update: bool = False,
+    ) -> None:
         if update:
             logger.info("Updating checkpoint file...")
         else:
@@ -119,19 +124,19 @@ def pipeline(
         model,
         processor,
         device,
-        batch_size,
-        language,
-        sampling_rate,
-        offset,
-        step,
-        nchunks,
-        starttime,
-        output_dir,
-    ) -> Transcription:
+        batch_size: int,
+        language: str,
+        sampling_rate: int,
+        offset: int,
+        step: int,
+        nchunks: int,
+        starttime: float,
+        output_dir: str,
+    ) -> Tuple[int, int]:
         transcription = Transcription(language=language, text="", chunks=[])
 
         for batch in BatchIterator(data["audio"], batch_size=batch_size):
-            tmp = process_batch(
+            res = process_batch(
                 batch,
                 model,
                 processor,
@@ -140,7 +145,7 @@ def pipeline(
                 sampling_rate,
                 base_offset=offset,
             )
-            transcription.append(tmp)
+            transcription.append(res)
             step += 1
             offset += 30 * len(batch)
             nchunks += len(batch)
